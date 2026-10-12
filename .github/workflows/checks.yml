@@ -1,0 +1,64 @@
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/generate-catalog.mjs --check
+      - run: node crates/agent-core/generate-fixtures.mjs --check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:contracts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run test:ui
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: |
+            test-results/
+            playwright-report/
+  native:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            crates/casino-core
+            crates/hook-bridge
+            crates/agent-core
+            apps/desktop/src-tauri
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:native
+      - run: npm run lint:native
+      - run: npx playwright install chromium
+      - run: npm run test:desktop
+      - run: npm run build:web
+      - run: npm run build:desktop
+      - run: npm run package:release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-installer
+          path: dist/release/
+

@@ -12,15 +12,20 @@
   },
   "scripts": {
     "dev:web": "vite --config apps/web/vite.config.ts --host 127.0.0.1",
-    "dev:desktop": "npm run dev --workspace @commit-casino/desktop",
+    "dev:desktop": "node scripts/native.mjs dev",
     "typecheck": "tsc --noEmit",
     "lint": "eslint packages apps tests scripts *.ts *.js",
     "test": "vitest run",
     "test:contracts": "vitest run tests/contracts",
     "test:e2e": "playwright test",
-    "test:native": "cargo test --manifest-path crates/casino-core/Cargo.toml && cargo test --manifest-path crates/hook-bridge/Cargo.toml",
+    "test:native": "node scripts/native.mjs test",
+    "lint:native": "node scripts/native.mjs lint",
+    "test:ui": "npm run test:browser --workspace @commit-casino/game-ui",
+    "test:desktop": "node scripts/native-smoke.mjs",
+    "licenses": "node scripts/collect-licenses.mjs",
+    "package:release": "powershell -NoProfile -File scripts/package-release.ps1",
     "build:web": "vite build --config apps/web/vite.config.ts",
-    "build:desktop": "npm run build --workspace @commit-casino/desktop",
+    "build:desktop": "node scripts/native.mjs build",
     "generate:catalog": "node scripts/generate-catalog.mjs"
   },
   "dependencies": {
