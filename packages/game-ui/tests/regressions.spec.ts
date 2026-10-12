@@ -1,5 +1,28 @@
 import { expect, test } from '@playwright/test';
 
+test('reopening an already shown committed round preserves its result without replay', async ({ page }) => {
+  await page.goto('/?scenario=already-shown');
+  await expect(page.getByText('net chips', { exact: true })).toBeVisible();
+  await expect(page.getByText('The wheel is turning', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Spinning…', exact: false })).toBeDisabled();
+  expect(await page.evaluate(() => window.regression.sounds)).toEqual([]);
+});
+
+test('the real Pixi wheel renders under strict native script CSP', async ({ page }) => {
+  const violations: string[] = [];
+  page.on('console', message => { if (/content security policy|unsafe-eval/i.test(message.text())) violations.push(message.text()); });
+  const response = await page.goto('/?scenario=observer');
+  expect(response?.headers()['content-security-policy']).toContain("script-src 'self';");
+  await expect(page.locator('.wheel-view canvas')).toBeVisible();
+  await page.evaluate(() => window.regression.observer());
+  await expect(page.getByText('The wheel is turning', { exact: true })).toBeVisible();
+  await page.getByText('net chips', { exact: true }).waitFor();
+  await expect(page.locator('.wheel-fallback')).toHaveCount(0);
+  await expect(page.locator('.wheel-view canvas')).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  expect(violations).toEqual([]);
+});
+
 test('observer round chips take precedence without deleting the local draft', async ({ page }) => {
   await page.goto('/?scenario=observer');
   await page.locator('[data-bet-id="outside:red"]').click();

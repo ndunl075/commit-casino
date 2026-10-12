@@ -29,10 +29,14 @@ class FakeService implements CasinoService {
   async resetWallet() { if (this.failReset) throw new Error('Reset write denied'); this.state = initial(); this.publish(); return this.getSnapshot(); }
   async refillWallet() { return this.getSnapshot(); }
   async clearHistory() { return this.getSnapshot(); }
-  async updateSettings(patch: Parameters<CasinoService['updateSettings']>[0]) { if (this.failSettings) throw new Error('Settings write denied'); this.state.settings = { ...this.state.settings, ...patch }; this.state.revision++; this.publish(); return this.getSnapshot(); }
+  async updateSettings(patch: Parameters<CasinoService['updateSettings']>[0]) { if (this.failSettings) throw { code: 'PERSISTENCE', message: 'Settings write denied' }; this.state.settings = { ...this.state.settings, ...patch }; this.state.revision++; this.publish(); return this.getSnapshot(); }
 }
 const oldService = new FakeService(); const nextService = new FakeService(); nextService.state = initial(4321);
 const scenario = new URLSearchParams(location.search).get('scenario');
+if (scenario === 'already-shown') {
+  const shown = round(); shown.status = 'committed'; shown.presentation.presentationState = 'shown'; shown.presentation.durationMs = 5000;
+  oldService.state.activeRound = shown; oldService.state.settings.animationMode = 'normal';
+}
 oldService.deferred = scenario === 'swap'; oldService.lostResponse = scenario === 'retry'; oldService.failSettings = scenario === 'errors'; oldService.failReset = scenario === 'errors';
 class FakeAgent implements AgentPort {
   state: AgentStatus = { revision: 0, enabled: scenario !== 'agent-disabled', message: scenario === 'agent-disabled' ? 'Verification gate has not passed.' : 'Verified session ready.', sessions: [{ sessionId: 'verified-session-1', eligible: true, reason: 'Idle with continuous verified boundaries.' }], wagers: [] };
