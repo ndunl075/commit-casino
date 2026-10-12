@@ -56,4 +56,7 @@ const fixtures = cases.map(([name,expectedOutcome,evidence]) => {
   if(expected.outcome!==expectedOutcome) throw new Error(`Policy fixture ${name}: expected ${expectedOutcome}, received ${expected.outcome}`);
   return {name,evidence,expected};
 });
-fs.writeFileSync(new URL('../../tests/fixtures/claude/agent-classifier-v1.json',import.meta.url),JSON.stringify(fixtures,null,2)+'\n');
+const target=new URL('../../tests/fixtures/claude/agent-classifier-v1.json',import.meta.url);
+const output=JSON.stringify(fixtures,null,2)+'\n';
+if(process.argv.includes('--check')){if(fs.readFileSync(target,'utf8').replaceAll('\r\n','\n')!==output)throw Error('Classifier fixture drift');}
+else fs.writeFileSync(target,output);

@@ -18,4 +18,5 @@ for(const [name,numbers] of Object.entries({red:redNumbers,black:nonzero.filter(
 if(bets.length!==157)throw Error(`Expected 157 bets, got ${bets.length}`);
 mkdirSync('rules',{recursive:true});
 const output=JSON.stringify({version:'european-v1',wheelOrder,redNumbers,bets},null,2)+'\n';
-if(process.argv.includes('--check')){if(readFileSync('rules/european-v1.json','utf8')!==output)throw Error('Catalog drift');}else writeFileSync('rules/european-v1.json',output);
+if(process.argv.includes('--check')){if(readFileSync('rules/european-v1.json','utf8').replaceAll('\r\n','\n')!==output)throw Error('Catalog drift');}else writeFileSync('rules/european-v1.json',output);
+

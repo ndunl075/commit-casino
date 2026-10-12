@@ -381,4 +381,3 @@ mod tests {
         assert!(!String::from_utf8_lossy(&bytes).contains("NEVER PERSIST THIS"));
     }
 }
-
