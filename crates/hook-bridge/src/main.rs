@@ -19,16 +19,23 @@ fn hook() -> BridgeResult<()> {
         std::process::exit(0);
     });
     let root = root()?;
+    // Persist BEFORE stdin can stall; watchdog/process death leaves the ticket.
+    let ticket = spool::begin_hook(&root)?;
     let mut bytes = vec![];
     std::io::stdin()
         .take((sanitizer::MAX_INPUT + 1) as u64)
         .read_to_end(&mut bytes)?;
     let safe = sanitizer::sanitize(&bytes)?;
     let link = env::var("COMMIT_CASINO_LINK").ok();
-    let event = spool::enqueue(&root, safe, link.as_deref())?;
+    let event = spool::enqueue_hook(&root, safe, link.as_deref(), Some(&ticket))?;
+    spool::complete_hook(&root, &ticket)?;
     // UI focus policy is native responsibility. Auto-launch is opt-in and prompt-only.
     let config = spool::load_config(&root)?;
-    if config.auto_launch && event.observation.kind == sanitizer::HookType::TurnStart {
+    if config.auto_launch
+        && event.observation.kind == sanitizer::HookType::TurnStart
+        && !spool::load_journal(&root, &event.observation.session_id)?.evidence_gap
+        && spool::should_auto_launch(&root, &event.observation.session_id).unwrap_or(false)
+    {
         if let Some(executable) = config
             .desktop_executable
             .filter(|p| p.is_absolute() && p.is_file())
@@ -127,6 +134,7 @@ fn run(args: &[String]) -> BridgeResult<i32> {
                 return Err(invalid("SUITE_CONFIG_OVERSIZED"));
             }
             let suite: verifier::RegisteredSuite = serde_json::from_slice(&fs::read(path)?)?;
+            verifier::validate_suite(&suite)?;
             if !sanitizer::opaque(&suite.suite_id)
                 || !suite.executable.is_absolute()
                 || !suite.working_directory.is_absolute()
@@ -141,6 +149,39 @@ fn run(args: &[String]) -> BridgeResult<i32> {
             spool::atomic_write(
                 &root.join("suites").join(format!("{}.json", suite.suite_id)),
                 &serde_json::to_vec_pretty(&suite)?,
+            )?;
+            Ok(0)
+        }
+        "require-suites" => {
+            if args.len() < 2 || args.len() > 33 {
+                return Err(invalid("REQUIRED_SUITE_IDS_REQUIRED"));
+            }
+            let mut seen = std::collections::BTreeSet::new();
+            for id in &args[1..] {
+                if !sanitizer::opaque(id) || !seen.insert(id) {
+                    return Err(invalid("INVALID_REQUIRED_SUITE"));
+                }
+                let path = root.join("suites").join(format!("{id}.json"));
+                spool::check_owned(&path)?;
+                if fs::metadata(&path)?.len() > 8192 {
+                    return Err(invalid("SUITE_CONFIG_OVERSIZED"));
+                }
+                let suite: verifier::RegisteredSuite = serde_json::from_slice(&fs::read(path)?)?;
+                if &suite.suite_id != id {
+                    return Err(invalid("SUITE_ID_MISMATCH"));
+                }
+                verifier::validate_suite(&suite)?;
+                verifier::verify_version(
+                    &suite.executable,
+                    &suite.version_args,
+                    &suite.runner_version,
+                )?;
+            }
+            spool::atomic_write(
+                &root.join("required-suites.json"),
+                &serde_json::to_vec_pretty(&verifier::RequiredSuitePolicy {
+                    suite_ids: args[1..].to_vec(),
+                })?,
             )?;
             Ok(0)
         }

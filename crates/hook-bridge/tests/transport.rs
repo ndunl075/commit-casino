@@ -193,6 +193,86 @@ fn unknown_provider_version_and_reinstall_are_rejected() {
     assert!(spool::enqueue(&root, hook("SessionStart"), None).is_err());
     assert!(installer::preview(Path::new("relative.exe")).is_err());
 }
+#[test]
+fn hook_ticket_blocks_preallocation_coverage_until_successful_enqueue() {
+    let (_temp, root) = setup();
+    spool::enqueue(&root, hook("SessionStart"), None).unwrap();
+    let ticket = spool::begin_hook(&root).unwrap();
+    assert!(spool::load_journal(&root, "session").unwrap().evidence_gap);
+    spool::enqueue_hook(&root, hook("UserPromptSubmit"), None, Some(&ticket)).unwrap();
+    assert!(spool::load_journal(&root, "session").unwrap().evidence_gap);
+    spool::complete_hook(&root, &ticket).unwrap();
+    assert!(!spool::load_journal(&root, "session").unwrap().evidence_gap);
+    let _abandoned = spool::begin_hook(&root).unwrap();
+    spool::enqueue(&root, hook("Stop"), None).unwrap();
+    assert!(spool::load_journal(&root, "session").unwrap().evidence_gap);
+}
+#[test]
+fn live_heartbeat_suppression_and_cooldown_skip_duplicate_launches() {
+    let (_temp, root) = setup();
+    spool::atomic_write(
+        &root.join("desktop-state.json"),
+        &serde_json::to_vec(&serde_json::json!({"lastSeenMs":spool::now_ms(),"pid":123})).unwrap(),
+    )
+    .unwrap();
+    assert!(!spool::should_auto_launch(&root, "session").unwrap());
+    fs::remove_file(root.join("desktop-state.json")).unwrap();
+    spool::atomic_write(
+        &root.join("suppressed-sessions.json"),
+        br#"{"sessionIds":["session"]}"#,
+    )
+    .unwrap();
+    assert!(!spool::should_auto_launch(&root, "session").unwrap());
+    assert!(spool::should_auto_launch(&root, "other").unwrap());
+    assert!(!spool::should_auto_launch(&root, "another").unwrap());
+}
+#[cfg(windows)]
+#[test]
+fn watchdog_before_stdin_eof_leaves_durable_uncertainty() {
+    use std::process::{Command, Stdio};
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("CommitCasino").join("integration");
+    installer::initialize(&root, commit_casino_bridge::DOCUMENTED_FIXTURE_VERSION).unwrap();
+    spool::enqueue(&root, hook("SessionStart"), None).unwrap();
+    let exe = env!("CARGO_BIN_EXE_commit-casino-bridge");
+    let start = std::time::Instant::now();
+    let mut child = Command::new(exe)
+        .arg("hook")
+        .env("LOCALAPPDATA", temp.path())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    // Keep stdin open deliberately; no parse/sequence allocation can complete.
+    let stdin = child.stdin.take().unwrap();
+    let output = child.wait_with_output().unwrap();
+    drop(stdin);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+    assert!(start.elapsed() < std::time::Duration::from_secs(1));
+    assert_eq!(spool::load_journal(&root, "session").unwrap().sequence, 1);
+    assert!(spool::load_journal(&root, "session").unwrap().evidence_gap);
+    assert_eq!(fs::read_dir(root.join("pending-hooks")).unwrap().count(), 1);
+}
+#[test]
+fn duplicate_prompt_keeps_turn_and_late_tool_completion_uses_original_turn() {
+    let (_temp, root) = setup();
+    spool::enqueue(&root, hook("SessionStart"), None).unwrap();
+    let first = spool::enqueue(&root, hook("UserPromptSubmit"), None).unwrap();
+    let duplicate = spool::enqueue(&root, hook("UserPromptSubmit"), None).unwrap();
+    assert_eq!(first.turn_id, duplicate.turn_id);
+    let mut start=sanitizer::sanitize(br#"{"session_id":"session","hook_event_name":"PreToolUse","tool_use_id":"tool","tool_name":"Bash"}"#).unwrap();
+    spool::enqueue(&root, start.clone(), None).unwrap();
+    spool::enqueue(&root, hook("Stop"), None).unwrap();
+    let next = spool::enqueue(&root, hook("UserPromptSubmit"), None).unwrap();
+    assert_ne!(next.turn_id, first.turn_id);
+    start.kind = HookType::ToolEnd;
+    let late = spool::enqueue(&root, start, None).unwrap();
+    assert_eq!(late.turn_id, first.turn_id);
+    assert!(spool::load_journal(&root, "session").unwrap().evidence_gap);
+}
 #[cfg(windows)]
 #[test]
 fn actual_hook_process_is_silent_and_exits_zero_on_missing_setup() {

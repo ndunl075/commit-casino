@@ -161,6 +161,12 @@ fn main() {
             }
         }))
         .setup(|app| {
+            #[cfg(feature = "native-smoke")]
+            let directory = std::env::var_os("COMMIT_CASINO_SMOKE_DATA_DIR")
+                .map(std::path::PathBuf::from)
+                .filter(|p| p.is_absolute())
+                .unwrap_or(app.path().app_data_dir()?);
+            #[cfg(not(feature = "native-smoke"))]
             let directory = app.path().app_data_dir()?;
             let opened = std::fs::create_dir_all(&directory)
                 .map_err(|_| lock_error())

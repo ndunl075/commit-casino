@@ -47,8 +47,8 @@ const positive = (n: number): boolean => count(n) && n > 0;
 
 export function classifyTurn(e: TurnEvidence): Classification {
   const unknown = (reason: string) => result('Unknown', reason);
-  if (!e.boundary || !positive(e.boundarySequence) || e.latestStopSequence === null ||
-      !count(e.latestStopSequence) || e.latestStopSequence >= e.boundarySequence ||
+  if (!e.boundary || !positive(e.boundarySequence) || (e.boundary === 'next-turn' && e.latestStopSequence === null) ||
+      (e.latestStopSequence !== null && (!count(e.latestStopSequence) || e.latestStopSequence >= e.boundarySequence)) ||
       !count(e.lastMutationSequence) || e.lastMutationSequence >= e.boundarySequence ||
       !count(e.consumedSequence) || e.consumedSequence < e.boundarySequence)
     return unknown('Terminal boundary or drained watermark unavailable');

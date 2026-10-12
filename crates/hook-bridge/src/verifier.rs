@@ -78,6 +78,74 @@ pub struct RunSummary {
 }
 pub const VITEST_FIXTURE_VERSION: &str = "5.0.3";
 pub const PLAYWRIGHT_FIXTURE_VERSION: &str = "1.64.0";
+pub fn validate_suite(suite: &RegisteredSuite) -> BridgeResult<()> {
+    if !crate::sanitizer::opaque(&suite.suite_id)
+        || !suite.executable.is_absolute()
+        || !suite.working_directory.is_absolute()
+        || suite.args.len() > 128
+        || suite.version_args.len() > 16
+        || suite.version_args.is_empty()
+        || suite
+            .args
+            .iter()
+            .chain(&suite.version_args)
+            .any(|s| s.len() > 8192)
+    {
+        return Err(invalid("INVALID_SUITE_REGISTRATION"));
+    }
+    if !matches!(
+        (suite.runner.as_str(), suite.runner_version.as_str()),
+        ("vitest", VITEST_FIXTURE_VERSION) | ("playwright", PLAYWRIGHT_FIXTURE_VERSION)
+    ) {
+        return Err(invalid("UNSUPPORTED_RUNNER_VERSION"));
+    }
+    if suite.args.iter().any(|s| {
+        s.contains("retry")
+            || s.contains("retries")
+            || s.contains("outputFile")
+            || s.contains("reporter")
+    }) {
+        return Err(invalid("RUNNER_FLAGS_OWNED_BY_WRAPPER"));
+    }
+    crate::installer::reject_reparse_chain(&suite.executable)?;
+    crate::installer::reject_reparse_chain(&suite.working_directory)?;
+    Ok(())
+}
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RequiredSuitePolicy {
+    pub suite_ids: Vec<String>,
+}
+pub fn load_required_suites(root: &Path) -> BridgeResult<Vec<RegisteredSuite>> {
+    let policy_path = root.join("required-suites.json");
+    check_owned(&policy_path)?;
+    if fs::metadata(&policy_path)?.len() > 8192 {
+        return Err(invalid("POLICY_OVERSIZED"));
+    }
+    let policy: RequiredSuitePolicy = serde_json::from_slice(&fs::read(policy_path)?)?;
+    if policy.suite_ids.is_empty() || policy.suite_ids.len() > 32 {
+        return Err(invalid("REQUIRED_SUITES_EMPTY_OR_OVERSIZED"));
+    }
+    let mut ids = std::collections::BTreeSet::new();
+    let mut suites = vec![];
+    for id in policy.suite_ids {
+        if !crate::sanitizer::opaque(&id) || !ids.insert(id.clone()) {
+            return Err(invalid("INVALID_REQUIRED_SUITE"));
+        }
+        let path = root.join("suites").join(format!("{id}.json"));
+        check_owned(&path)?;
+        if fs::metadata(&path)?.len() > 8192 {
+            return Err(invalid("SUITE_OVERSIZED"));
+        }
+        let suite: RegisteredSuite = serde_json::from_slice(&fs::read(path)?)?;
+        if suite.suite_id != id {
+            return Err(invalid("SUITE_ID_MISMATCH"));
+        }
+        validate_suite(&suite)?;
+        suites.push(suite);
+    }
+    Ok(suites)
+}
 fn nonnegative(v: &Value) -> BridgeResult<u64> {
     v.as_u64()
         .filter(|n| *n <= 9_007_199_254_740_991)
@@ -147,6 +215,7 @@ pub fn verified_run(
     session: &str,
     link: &str,
 ) -> BridgeResult<i32> {
+    validate_suite(suite)?;
     if !crate::sanitizer::opaque(&suite.suite_id)
         || !crate::sanitizer::opaque(link)
         || !suite.executable.is_absolute()

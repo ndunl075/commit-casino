@@ -130,9 +130,19 @@ pub fn private_dir(path: &Path) -> BridgeResult<()> {
     check_owned(path)
 }
 pub fn atomic_write(path: &Path, bytes: &[u8]) -> BridgeResult<()> {
+    atomic_replace(path, bytes, true)
+}
+pub(crate) fn atomic_settings_write(path: &Path, bytes: &[u8]) -> BridgeResult<()> {
+    atomic_replace(path, bytes, false)
+}
+fn atomic_replace(path: &Path, bytes: &[u8], private: bool) -> BridgeResult<()> {
     let parent = path.parent().ok_or_else(|| invalid("NO_PARENT"))?;
-    check_owned(parent)?;
-    if path.exists() {
+    if private {
+        check_owned(parent)?;
+    } else {
+        crate::installer::reject_reparse_chain(path)?;
+    }
+    if private && path.exists() {
         check_owned(path)?;
     }
     let temp = parent.join(format!("{}.tmp", Uuid::new_v4()));
@@ -144,6 +154,9 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> BridgeResult<()> {
         options.mode(0o600);
     }
     let mut file = options.open(&temp)?;
+    if !private && path.exists() {
+        file.set_permissions(fs::metadata(path)?.permissions())?;
+    }
     file.write_all(bytes)?;
     file.sync_all()?;
     drop(file); // ReplaceFileW requires the replacement handle closed on Windows.
@@ -225,7 +238,7 @@ pub fn lock_session(root: &Path, session: &str) -> BridgeResult<File> {
         .map_err(|_| invalid("JOURNAL_BUSY"))?;
     Ok(file)
 }
-pub fn load_journal(root: &Path, session: &str) -> BridgeResult<Journal> {
+fn read_journal(root: &Path, session: &str) -> BridgeResult<Journal> {
     let p = journal_path(root, session);
     if !p.exists() {
         return Ok(Journal::default());
@@ -235,6 +248,125 @@ pub fn load_journal(root: &Path, session: &str) -> BridgeResult<Journal> {
         return Err(invalid("JOURNAL_OVERSIZED"));
     }
     Ok(serde_json::from_slice(&fs::read(p)?)?)
+}
+pub fn begin_hook(root: &Path) -> BridgeResult<String> {
+    check_owned(root)?;
+    check_owned(&root.join("pending-hooks"))?;
+    if fs::read_dir(root.join("pending-hooks"))?
+        .take(MAX_PENDING + 1)
+        .count()
+        >= MAX_PENDING
+    {
+        return Err(invalid("PENDING_HOOKS_FULL"));
+    }
+    let ticket = Uuid::new_v4().to_string();
+    atomic_write(
+        &root.join("pending-hooks").join(format!("{ticket}.json")),
+        &serde_json::to_vec(&now_ms())?,
+    )?;
+    Ok(ticket)
+}
+pub fn complete_hook(root: &Path, ticket: &str) -> BridgeResult<()> {
+    if !opaque(ticket) {
+        return Err(invalid("INVALID_HOOK_TICKET"));
+    }
+    let path = root.join("pending-hooks").join(format!("{ticket}.json"));
+    check_owned(&path)?;
+    fs::remove_file(path)?;
+    Ok(())
+}
+fn pending_hooks(root: &Path, exclude: Option<&str>) -> BridgeResult<bool> {
+    check_owned(&root.join("pending-hooks"))?;
+    for entry in fs::read_dir(root.join("pending-hooks"))?.take(MAX_PENDING + 1) {
+        let path = entry?.path();
+        if path.file_stem().and_then(|s| s.to_str()) != exclude {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+/// A pending or abandoned invocation is uncertainty even before source allocation.
+/// Native arming must call this under the boundary lock; pending hooks block debit.
+pub fn load_journal(root: &Path, session: &str) -> BridgeResult<Journal> {
+    let mut journal = read_journal(root, session)?;
+    if pending_hooks(root, None)? {
+        journal.evidence_gap = true;
+    }
+    let gap = root.join("evidence-gap.json");
+    if gap.exists() {
+        check_owned(&gap)?;
+        let epoch: u64 = serde_json::from_slice(&fs::read(gap)?)?;
+        if epoch > journal.gap_epoch {
+            journal.evidence_gap = true;
+            journal.gap_epoch = epoch;
+        }
+    }
+    Ok(journal)
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DesktopHeartbeat {
+    last_seen_ms: u64,
+    pid: u32,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SuppressedSessions {
+    session_ids: Vec<String>,
+}
+/// Private heartbeat and short global cooldown avoid duplicate process launches.
+pub fn should_auto_launch(root: &Path, session: &str) -> BridgeResult<bool> {
+    let now = now_ms();
+    let suppress = root.join("suppressed-sessions.json");
+    if suppress.exists() {
+        check_owned(&suppress)?;
+        if fs::metadata(&suppress)?.len() > 65536 {
+            return Err(invalid("SUPPRESSION_OVERSIZED"));
+        }
+        let policy: SuppressedSessions = serde_json::from_slice(&fs::read(suppress)?)?;
+        if policy.session_ids.len() > 128 || policy.session_ids.iter().any(|s| !opaque(s)) {
+            return Err(invalid("INVALID_SUPPRESSION"));
+        }
+        if policy.session_ids.iter().any(|s| s == session) {
+            return Ok(false);
+        }
+    }
+    let heartbeat = root.join("desktop-state.json");
+    if heartbeat.exists() {
+        check_owned(&heartbeat)?;
+        if fs::metadata(&heartbeat)?.len() > 8192 {
+            return Err(invalid("HEARTBEAT_OVERSIZED"));
+        }
+        let state: DesktopHeartbeat = serde_json::from_slice(&fs::read(heartbeat)?)?;
+        if state.pid > 0
+            && state.last_seen_ms <= now.saturating_add(1000)
+            && now.saturating_sub(state.last_seen_ms) <= 3000
+        {
+            return Ok(false);
+        }
+    }
+    let lock_path = root.join("launch.lock");
+    if lock_path.exists() {
+        check_owned(&lock_path)?;
+    }
+    let file = OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(lock_path)?;
+    if file.try_lock_exclusive().is_err() {
+        return Ok(false);
+    }
+    let last = root.join("last-launch.json");
+    if last.exists() {
+        check_owned(&last)?;
+        let at: u64 = serde_json::from_slice(&fs::read(&last)?)?;
+        if now.saturating_sub(at) < 3000 {
+            return Ok(false);
+        }
+    }
+    atomic_write(&last, &serde_json::to_vec(&now)?)?;
+    Ok(true)
 }
 pub fn signed_bytes(envelope: &Envelope, secret: &str) -> BridgeResult<Vec<u8>> {
     let payload = serde_json::to_string(envelope)?;
@@ -276,13 +408,22 @@ pub fn authenticate(
 }
 /** Caller holds this same lock when arming; never infer eligibility from the UI snapshot. */
 pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeResult<Envelope> {
+    enqueue_hook(root, hook, link, None)
+}
+pub fn enqueue_hook(
+    root: &Path,
+    hook: SanitizedHook,
+    link: Option<&str>,
+    ticket: Option<&str>,
+) -> BridgeResult<Envelope> {
     let config = load_config(root)?;
     if config.provider_version != crate::DOCUMENTED_FIXTURE_VERSION {
         return Err(invalid("VERSION_MISMATCH"));
     }
     check_owned(&root.join("inbox"))?;
     let _lock = lock_session(root, &hook.session_id)?;
-    let mut journal = load_journal(root, &hook.session_id)?;
+    let mut journal = read_journal(root, &hook.session_id)?;
+    let other_pending = pending_hooks(root, ticket)?;
     let gap_path = root.join("evidence-gap.json");
     if gap_path.exists() {
         check_owned(&gap_path)?;
@@ -310,6 +451,9 @@ pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeRe
     if hook.kind == HookType::SessionStart {
         if journal.sequence == 0 || journal.ended {
             journal.evidence_gap = false;
+            journal.turn_id = None;
+            journal.tool_turns.clear();
+            journal.stopped = false;
         }
         journal.ended = false;
     }
@@ -339,12 +483,15 @@ pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeRe
         .sequence
         .checked_add(1)
         .ok_or_else(|| invalid("SEQUENCE_OVERFLOW"))?;
+    let mut observed_turn = journal.turn_id.clone();
     match hook.kind {
         HookType::TurnStart => {
             if journal.turn_id.is_some() && !journal.stopped {
                 journal.evidence_gap = true;
+            } else {
+                journal.turn_id = Some(Uuid::new_v4().to_string());
             }
-            journal.turn_id = Some(Uuid::new_v4().to_string());
+            observed_turn = journal.turn_id.clone();
             journal.stopped = false;
         }
         HookType::ToolStart => {
@@ -352,12 +499,10 @@ pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeRe
                 return Err(invalid("TOO_MANY_TOOLS"));
             }
             if let (Some(tool), Some(turn)) = (&hook.tool_id, &journal.turn_id) {
-                if journal
-                    .tool_turns
-                    .insert(tool.clone(), turn.clone())
-                    .is_some()
-                {
+                if journal.tool_turns.contains_key(tool) {
                     journal.evidence_gap = true;
+                } else {
+                    journal.tool_turns.insert(tool.clone(), turn.clone());
                 }
             } else {
                 journal.evidence_gap = true;
@@ -365,14 +510,14 @@ pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeRe
             journal.stopped = false;
         }
         HookType::ToolEnd => {
-            if hook
+            let original = hook
                 .tool_id
                 .as_ref()
-                .and_then(|id| journal.tool_turns.remove(id))
-                != journal.turn_id
-            {
+                .and_then(|id| journal.tool_turns.remove(id));
+            if original != journal.turn_id {
                 journal.evidence_gap = true;
             }
+            observed_turn = original;
             journal.stopped = false;
         }
         HookType::StopCandidate => journal.stopped = true,
@@ -383,6 +528,7 @@ pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeRe
     if hook.kind != HookType::SessionStart {
         journal.evidence_gap |= prior_gap;
     }
+    journal.evidence_gap |= other_pending;
     let envelope = Envelope {
         version: 1,
         event_id: Uuid::new_v4().to_string(),
@@ -390,7 +536,7 @@ pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeRe
         provider: "claude".into(),
         source_sequence: journal.sequence,
         observed_at_ms: now_ms(),
-        turn_id: journal.turn_id.clone(),
+        turn_id: observed_turn,
         observation: hook,
         verification: None,
     };

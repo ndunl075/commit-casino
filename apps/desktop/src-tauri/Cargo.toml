@@ -5,6 +5,9 @@ edition = "2021"
 license = "MIT"
 description = "Free offline roulette for developers"
 
+[features]
+native-smoke = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

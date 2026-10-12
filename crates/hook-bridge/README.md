@@ -18,6 +18,7 @@ commit-casino-bridge disconnect ABSOLUTE_OWNED_MANIFEST_PATH
 commit-casino-bridge register-claude ABSOLUTE_CLAUDE_EXE
 commit-casino-bridge launch-claude [ordinary Claude arguments]
 commit-casino-bridge register-suite ABSOLUTE_SUITE_JSON
+commit-casino-bridge require-suites SUITE_ID [OTHER_REQUIRED_SUITE_IDS]
 commit-casino-bridge verify SUITE_ID
 ```
 
@@ -39,7 +40,15 @@ Suite registration schema (use the actual absolute executable and CLI paths):
 
 Supported report profiles are Vitest 5.0.3 JSON and Playwright 1.64.0 JSON. The wrapper owns reporter/output/retry flags, disables retries, verifies the actual version, and uses a new UUID private run directory. It preserves stdout/stderr and actual process exit even if report verification fails. Only counts, status, timing, opaque suite/run/session/turn IDs and sequences are retained; raw reports are deleted after normalization. Missing/stale/zero-test/conflicting/flaky/unsupported reports cannot establish success. A killed wrapper leaves an incomplete started observation; it cannot silently reuse an earlier pass.
 
+`require-suites` validates already registered suites and writes private `required-suites.json` containing `{ "suiteIds": ["unit"] }`. The native authority must require a nonempty validated policy before arming and freeze those IDs with the wager. Reconfiguration cannot rewrite the policy of an existing obligation.
+
 Consumers periodically scan as well as watch the inbox. Only contiguous authenticated sequences advance. Persist accepted events and the consumed watermark in the same database transaction before deleting files. `replayed_events` permits cleanup after a crash between database commit and deletion. `Journal.evidence_gap` and the durable preallocation gap epoch must also be checked; absence of numeric gaps is insufficient. Arming future wagers must take the same session lock, drain boundaries, and validate idle eligibility before debit.
+
+Each hook flushes an opaque ticket under `pending-hooks` before reading stdin. It removes the ticket only after successful signed publication. A stalled/killed hook therefore blocks Agent coverage even when no sequence was allocated. `load_journal` overlays pending tickets and a newer global drop epoch as `evidence_gap`; native callers must reject arming while either is present. Do not delete abandoned tickets automatically to manufacture continuity. Recovering a failed installation requires an explicit fresh coverage setup after outstanding wagers have been refunded.
+
+Automatic opening is off by default. When explicitly enabled, a private native heartbeat (`desktop-state.json` with `lastSeenMs` and `pid`), per-session suppression (`suppressed-sessions.json` with `sessionIds`), and three-second launch cooldown prevent process bursts. Only a fresh accepted main prompt can start the fixed configured desktop executable; native code applies non-focus window presentation.
+
+Native checks: `cargo test --manifest-path crates/hook-bridge/Cargo.toml`. After `npm ci`, run `cargo test --manifest-path crates/hook-bridge/Cargo.toml --test registered_runner -- --ignored --test-threads=1` to verify the actual pinned local Vitest and Playwright processes. This harness passed on Windows for success and intentional failed assertions: actual exits 0/1, valid normalized counts, continuous authenticated run sequences, raw report deletion and summary privacy. It uses explicitly simulated turn metadata and does not start an AI conversation. Playwright checks use ordinary API assertions without launching a browser or network request.
 
 **Agent wagering is disabled.** The pure classifier and published 1:1 odds/refunds are tested, but the separate architecture gate also requires real turn/attention continuity, complete runner attribution, locked pre-prompt wager binding and idempotent native financial settlement. Passive notifications and Classic gameplay remain independent of this gate.
 
