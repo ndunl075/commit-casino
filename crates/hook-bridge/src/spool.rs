@@ -87,10 +87,27 @@ pub fn read_link(root: &Path, link: &str) -> BridgeResult<LaunchLink> {
 }
 pub fn note_gap(root: &Path) {
     // No provider input, secret, path or prompt is ever written to diagnostics.
-    let _ = atomic_write(
-        &root.join("evidence-gap.json"),
-        &serde_json::to_vec(&now_ms()).unwrap_or_default(),
+    let _ = record_gap(root);
+}
+fn record_gap(root: &Path) -> BridgeResult<u64> {
+    let _lock = lock_session(root, "global-gap-epoch")?;
+    let path = root.join("evidence-gap.json");
+    let previous = if path.exists() {
+        check_owned(&path)?;
+        if fs::metadata(&path)?.len() > 32 {
+            return Err(invalid("INVALID_GAP_EPOCH"));
+        }
+        serde_json::from_slice::<u64>(&fs::read(&path)?)?
+    } else {
+        0
+    };
+    let epoch = now_ms().max(
+        previous
+            .checked_add(1)
+            .ok_or_else(|| invalid("GAP_EPOCH_OVERFLOW"))?,
     );
+    atomic_write(&path, &serde_json::to_vec(&epoch)?)?;
+    Ok(epoch)
 }
 pub fn now_ms() -> u64 {
     SystemTime::now()
@@ -285,6 +302,48 @@ fn pending_hooks(root: &Path, exclude: Option<&str>) -> BridgeResult<bool> {
     }
     Ok(false)
 }
+/// A new observed session may retire dead invocations, but only after flushing
+/// an epoch that permanently invalidates all older session coverage.
+fn retire_abandoned_hooks(root: &Path, own_ticket: &str) -> BridgeResult<()> {
+    let _lock = lock_session(root, "global-hook-recovery")?;
+    let now = now_ms();
+    let entries: Vec<_> = fs::read_dir(root.join("pending-hooks"))?
+        .take(MAX_PENDING + 1)
+        .collect();
+    if entries.len() > MAX_PENDING {
+        return Err(invalid("PENDING_HOOKS_FULL"));
+    }
+    let mut abandoned = Vec::new();
+    for entry in entries {
+        let path = entry?.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+            continue; // A partial write remains uncertainty; never guess its contents.
+        }
+        let Some(id) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        if id == own_ticket || Uuid::parse_str(id).is_err() {
+            continue;
+        }
+        check_owned(&path)?;
+        if fs::metadata(&path)?.len() > 32 {
+            return Err(invalid("INVALID_HOOK_TICKET"));
+        }
+        let created: u64 = serde_json::from_slice(&fs::read(&path)?)?;
+        // The helper watchdog exits at 250ms. Keep a full second for active
+        // invocations and scheduling jitter; future timestamps remain blocked.
+        if created <= now && now - created > 1000 {
+            abandoned.push(path);
+        }
+    }
+    if !abandoned.is_empty() {
+        record_gap(root)?; // Must succeed before removing even one ticket.
+        for path in abandoned {
+            fs::remove_file(path)?;
+        }
+    }
+    Ok(())
+}
 /// A pending or abandoned invocation is uncertainty even before source allocation.
 /// Native arming must call this under the boundary lock; pending hooks block debit.
 pub fn load_journal(root: &Path, session: &str) -> BridgeResult<Journal> {
@@ -408,7 +467,18 @@ pub fn authenticate(
 }
 /** Caller holds this same lock when arming; never infer eligibility from the UI snapshot. */
 pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeResult<Envelope> {
-    enqueue_hook(root, hook, link, None)
+    let ticket = begin_hook(root)?;
+    let result = enqueue_hook(root, hook, link, Some(&ticket));
+    match result {
+        Ok(event) => {
+            complete_hook(root, &ticket)?;
+            Ok(event)
+        }
+        Err(error) => {
+            note_gap(root);
+            Err(error)
+        }
+    }
 }
 pub fn enqueue_hook(
     root: &Path,
@@ -416,12 +486,19 @@ pub fn enqueue_hook(
     link: Option<&str>,
     ticket: Option<&str>,
 ) -> BridgeResult<Envelope> {
+    let ticket_id = ticket
+        .filter(|s| opaque(s))
+        .ok_or_else(|| invalid("DURABLE_HOOK_TICKET_REQUIRED"))?;
+    check_owned(&root.join("pending-hooks").join(format!("{ticket_id}.json")))?;
     let config = load_config(root)?;
     if config.provider_version != crate::DOCUMENTED_FIXTURE_VERSION {
         return Err(invalid("VERSION_MISMATCH"));
     }
     check_owned(&root.join("inbox"))?;
     let _lock = lock_session(root, &hook.session_id)?;
+    if hook.kind == HookType::SessionStart {
+        retire_abandoned_hooks(root, ticket_id)?;
+    }
     let mut journal = read_journal(root, &hook.session_id)?;
     let other_pending = pending_hooks(root, ticket)?;
     let gap_path = root.join("evidence-gap.json");
@@ -434,13 +511,8 @@ pub fn enqueue_hook(
         }
     }
     let prior_gap = journal.evidence_gap;
-    // Persist uncertainty before allocating sequence/publication: watchdog interruption fails closed.
-    journal.evidence_gap = true;
-    atomic_write(
-        &journal_path(root, &hook.session_id),
-        &serde_json::to_vec(&journal)?,
-    )?;
-    journal.evidence_gap = prior_gap;
+    // The already-flushed pending ticket covers every interruption here. One
+    // journal flush plus inbox publication is sufficient; avoid redundant fsyncs.
     if fs::read_dir(root.join("inbox"))?
         .take(MAX_PENDING + 1)
         .count()
@@ -450,7 +522,7 @@ pub fn enqueue_hook(
     }
     if hook.kind == HookType::SessionStart {
         if journal.sequence == 0 || journal.ended {
-            journal.evidence_gap = false;
+            journal.evidence_gap = prior_gap && journal.sequence > 0;
             journal.turn_id = None;
             journal.tool_turns.clear();
             journal.stopped = false;
@@ -540,8 +612,6 @@ pub fn enqueue_hook(
         observation: hook,
         verification: None,
     };
-    let intended_gap = journal.evidence_gap;
-    journal.evidence_gap = true;
     atomic_write(
         &journal_path(root, &envelope.observation.session_id),
         &serde_json::to_vec(&journal)?,
@@ -552,11 +622,6 @@ pub fn enqueue_hook(
             .join("inbox")
             .join(format!("{}.json", envelope.event_id)),
         &bytes,
-    )?;
-    journal.evidence_gap = intended_gap;
-    atomic_write(
-        &journal_path(root, &envelope.observation.session_id),
-        &serde_json::to_vec(&journal)?,
     )?;
     Ok(envelope)
 }
@@ -606,6 +671,7 @@ pub fn publish_verification(
             tool_id: None,
             effect: None,
             attention: None,
+            tool_status: None,
         },
         verification: Some(summary.clone()),
     };

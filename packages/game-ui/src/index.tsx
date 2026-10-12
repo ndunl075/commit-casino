@@ -27,7 +27,7 @@ type Panel = 'settings' | 'history' | 'stats' | 'rules' | 'picker' | 'reset' | '
 type CommitRequest = Parameters<CasinoService['commitClassic']>[0];
 const denominations = [10, 50, 100, 500, 1000];
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatChips(Math.abs(n))}`;
-const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'The local service could not complete this action. Please try again.';
+const errorMessage = (error: unknown) => typeof error === 'string' ? error : error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : 'The local service could not complete this action. Please try again.';
 
 export function CasinoApp(props: CasinoAppProps) {
   const identity = useRef({ service: props.service, generation: 0 });
@@ -108,7 +108,11 @@ function CasinoGame({ service, temporary = false, onTemporaryPlay, onWindowMode,
   }, [agent, panel]);
   useEffect(() => {
     if (!snapshot) return;
-    const unshown = snapshot.activeRound ?? snapshot.history.find(r => r.presentation.presentationState === 'pending');
+    const active = snapshot.activeRound;
+    if (active?.presentation.presentationState === 'shown' && !completed.current.has(active.roundId)) {
+      completed.current.add(active.roundId); setResult(active); setPresentation(null);
+    }
+    const unshown = active?.presentation.presentationState === 'pending' ? active : snapshot.history.find(r => r.presentation.presentationState === 'pending');
     if (unshown && !completed.current.has(unshown.roundId)) setPresentation(current => current?.roundId === unshown.roundId ? current : unshown);
     if (result) { const updated = snapshot.history.find(r => r.roundId === result.roundId); if (updated && updated.status !== result.status) setResult(updated); }
   }, [snapshot, result]);

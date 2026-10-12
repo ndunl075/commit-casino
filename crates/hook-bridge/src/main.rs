@@ -83,9 +83,35 @@ fn launch_claude(root: &Path, executable: &Path, args: &[String]) -> BridgeResul
 fn run(args: &[String]) -> BridgeResult<i32> {
     let command = args.first().map(String::as_str).unwrap_or("help");
     if command == "hook" {
-        if hook().is_err() {
+        if let Err(error) = hook() {
             if let Ok(p) = root() {
                 spool::note_gap(&p);
+                // Only fixed allowlisted codes, never raw errors/provider input.
+                let code = error.to_string();
+                let safe = if [
+                    "AMBIGUOUS_SUBAGENT",
+                    "INVALID_SESSION",
+                    "INVALID_TOOL_ID",
+                    "UNSUPPORTED_NOTIFICATION",
+                    "UNSUPPORTED_EVENT",
+                    "VERSION_MISMATCH",
+                    "SPOOL_FULL",
+                    "JOURNAL_BUSY",
+                    "LINK_CONFLICT",
+                    "MULTI_SESSION_LINK",
+                    "PENDING_HOOKS_FULL",
+                ]
+                .contains(&code.as_str())
+                {
+                    code.as_str()
+                } else {
+                    "HOOK_REJECTED"
+                };
+                let _ = spool::atomic_write(
+                    &p.join("hook-diagnostic.json"),
+                    &serde_json::to_vec(&serde_json::json!({"code":safe,"atMs":spool::now_ms()}))
+                        .unwrap_or_default(),
+                );
             }
         }
         return Ok(0);
@@ -218,6 +244,12 @@ fn run(args: &[String]) -> BridgeResult<i32> {
                 serde_json::from_slice(&fs::read(root.join("claude-executable.json"))?)?;
             launch_claude(&root, &executable, &args[1..])
         }
+        "verify-session" => {
+            if args.len() != 3 {
+                return Err(invalid("SESSION_AND_SUITE_REQUIRED"));
+            }
+            verifier::verify_session(&root, &args[1], &args[2])
+        }
         "verify" => {
             let suite_id = args
                 .get(1)
@@ -238,7 +270,7 @@ fn run(args: &[String]) -> BridgeResult<i32> {
             verifier::verified_run(&root, &suite, &session, &link)
         }
         _ => {
-            println!("Commit Casino passive bridge: init VERSION | preview | install ABSOLUTE_SETTINGS_PATH | disconnect MANIFEST | launch-claude [args] | verify REGISTERED_SUITE SESSION");
+            println!("Commit Casino passive bridge: init VERSION | preview | install ABSOLUTE_SETTINGS_PATH | disconnect MANIFEST | launch-claude [args] | verify REGISTERED_SUITE | verify-session SESSION_ID SUITE_ID");
             Ok(0)
         }
     }

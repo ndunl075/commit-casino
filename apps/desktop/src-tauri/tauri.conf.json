@@ -31,6 +31,8 @@
   },
   "bundle": {
     "active": true,
+    "licenseFile": "../../../LICENSE",
+    "resources": { "../../../dist/licenses/": "licenses/" },
     "targets": [
       "nsis"
     ],

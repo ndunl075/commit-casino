@@ -2,7 +2,12 @@
  * The native authority must persist outcome, payout and reason in one transaction. */
 export type Prediction = 'Clean Run' | 'Comeback' | 'Broken Build' | 'Needs Help';
 export type Outcome = Prediction | 'Unknown';
-export const liveAgentWageringEnabled = false;
+/** Availability is a native service capability, never a classifier constant.
+ * Browser callers must always report unavailable. Financial commands recheck
+ * session freshness, attribution, coverage and registered policy themselves. */
+export function isAgentWageringAvailable(capability: { platform: 'desktop' | 'browser'; nativeEvidenceGatePassed: boolean; sessionEligible: boolean }): boolean {
+  return capability.platform === 'desktop' && capability.nativeEvidenceGatePassed && capability.sessionEligible;
+}
 export const classifierVersion = 'agent-classifier-v1' as const;
 export const payoutVersion = 'agent-v1' as const;
 export const pendingTimeoutMs = 15 * 60 * 1000;

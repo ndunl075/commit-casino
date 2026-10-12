@@ -1,0 +1,61 @@
+name: Tagged release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: |
+            crates/casino-core
+            crates/hook-bridge
+            crates/agent-core
+            apps/desktop/src-tauri
+      - run: npm ci
+      - run: node scripts/generate-catalog.mjs --check
+      - run: node crates/agent-core/generate-fixtures.mjs --check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:native
+      - run: npm run lint:native
+      - run: npx playwright install chromium
+      - run: npm run test:e2e
+      - run: npm run test:ui
+      - name: Ensure WebView2 runtime for direct executable smoke
+        shell: pwsh
+        run: ./scripts/ensure-webview2.ps1
+      - run: npm run test:desktop
+      - run: npm run build:web
+      - run: npm run build:desktop
+      - run: npm run test:installer
+      - run: npm run package:release
+      - name: Publish checked artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $taskVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -ne "v$taskVersion") { throw 'Tag and package version differ' }
+          $taskAssets = (Get-ChildItem -LiteralPath "dist/release/$taskVersion" -File).FullName
+          gh release create "$env:GITHUB_REF_NAME" @taskAssets --title "Commit Casino $taskVersion" --notes-file docs/RELEASE_NOTES.md
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: release-failure-evidence
+          path: test-results/native/
+          if-no-files-found: ignore

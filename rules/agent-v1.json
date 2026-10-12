@@ -9,5 +9,5 @@
   ],
   "unknown": { "selectable": false, "refundMultiplier": 1 },
   "pendingTimeoutMs": 900000,
-  "liveWageringEnabled": false
+  "availabilityAuthority": "native-validated-session-and-evidence-policy"
 }

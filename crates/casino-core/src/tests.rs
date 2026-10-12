@@ -222,3 +222,40 @@ fn settings_are_validated() {
         true
     )
 }
+
+#[test]
+fn presentation_acknowledgment_during_commit_never_credits_wallet() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("early-ack.db");
+    let mut c = Casino::open(&path).unwrap();
+    let mut input = request(0);
+    input.bets = vec![BetInput {
+        bet_id: "outside:red".into(),
+        stake: 100,
+    }];
+    let round = c.commit_with(input, || Ok(7)).unwrap();
+    c.acknowledge(&round.round_id).unwrap();
+    c.acknowledge(&round.round_id).unwrap();
+    let snapshot = c.snapshot().unwrap();
+    assert_eq!(snapshot["wallet"]["balance"], 9900);
+    assert_eq!(snapshot["activeRound"]["status"], "committed");
+    assert_eq!(
+        snapshot["activeRound"]["presentation"]["presentationState"],
+        "shown"
+    );
+    c.settle(&round.round_id).unwrap();
+    c.settle(&round.round_id).unwrap();
+    assert_eq!(c.snapshot().unwrap()["wallet"]["balance"], 10100);
+    assert!(c.reconcile().unwrap());
+    drop(c);
+    let mut reopened = Casino::open(path).unwrap();
+    reopened.acknowledge(&round.round_id).unwrap();
+    let snapshot = reopened.snapshot().unwrap();
+    assert_eq!(snapshot["wallet"]["balance"], 10100);
+    assert_eq!(snapshot["history"][0]["status"], "settled");
+    assert_eq!(
+        snapshot["history"][0]["presentation"]["presentationState"],
+        "shown"
+    );
+    assert!(reopened.reconcile().unwrap());
+}

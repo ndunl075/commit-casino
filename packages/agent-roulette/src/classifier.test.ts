@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { classifyTurn, settlePrediction, liveAgentWageringEnabled, type TurnEvidence, type VerificationRun } from './index.js';
+import { classifyTurn, settlePrediction, isAgentWageringAvailable, type TurnEvidence, type VerificationRun } from './index.js';
 const run = (overrides: Partial<VerificationRun> = {}): VerificationRun => ({ runId: 'r1', sessionId: 's', turnId: 't', suiteId: 'unit', kind: 'test', startedSequence: 3, completedSequence: 5, passed: 2, failed: 0, skipped: 0, observedFailedAttempts: 0, exitCode: 0, integrity: 'valid', supported: true, canceled: false, ...overrides });
 const evidence = (overrides: Partial<TurnEvidence> = {}): TurnEvidence => ({ sessionId: 's', turnId: 't', requiredSuiteIds: ['unit'], requiredBuildIds: [], runs: [run()], boundary: 'next-turn', boundarySequence: 10, consumedSequence: 10, latestStopSequence: 9, lastMutationSequence: 2, continuousCoverage: true, attributionValid: true, mutationTrackingComplete: true, unaccountedActivity: false, unresolvedAttention: false, ...overrides });
 describe('conservative agent-v1 evidence', () => {
-  it('keeps the release gate closed', () => expect(liveAgentWageringEnabled).toBe(false));
+  it('defers wagering availability to validated native capability', () => {
+    expect(isAgentWageringAvailable({ platform: 'browser', nativeEvidenceGatePassed: true, sessionEligible: true })).toBe(false);
+    expect(isAgentWageringAvailable({ platform: 'desktop', nativeEvidenceGatePassed: false, sessionEligible: true })).toBe(false);
+    expect(isAgentWageringAvailable({ platform: 'desktop', nativeEvidenceGatePassed: true, sessionEligible: false })).toBe(false);
+    expect(isAgentWageringAvailable({ platform: 'desktop', nativeEvidenceGatePassed: true, sessionEligible: true })).toBe(true);
+  });
   it('classifies clean required suites', () => expect(classifyTurn(evidence()).outcome).toBe('Clean Run'));
   it('classifies an earlier failure followed by a fresh pass', () => expect(classifyTurn(evidence({ runs: [run({ runId: 'early', startedSequence: 1, completedSequence: 2, passed: 0, failed: 1, exitCode: 1, observedFailedAttempts: 1 }), run()] })).outcome).toBe('Comeback'));
   it('classifies the latest failure', () => expect(classifyTurn(evidence({ runs: [run(), run({ runId: 'late', startedSequence: 6, completedSequence: 7, failed: 1, passed: 0, exitCode: 1 })] })).outcome).toBe('Broken Build'));

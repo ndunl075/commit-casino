@@ -271,7 +271,8 @@ fn consume(app: &tauri::AppHandle, last_auto_show: &mut Option<Instant>) -> Resu
     let root = root()?;
     let state = app.state::<Service>();
     let mut casino = state.lock()?;
-    let (ingested, prompts) = ingest_inbox_inner(&root, &mut casino)?;
+    let ingested_result = ingest_inbox_inner(&root, &mut casino);
+    let (ingested, prompts) = ingested_result.as_ref().cloned().unwrap_or((false, vec![]));
     let expired = if pending_hook_in_flight(&root) {
         false
     } else {
@@ -291,10 +292,10 @@ fn consume(app: &tauri::AppHandle, last_auto_show: &mut Option<Instant>) -> Resu
         crate::show_passively(app);
         *last_auto_show = Some(Instant::now());
     }
-    if ingested || expired {
+    if ingested || expired || ingested_result.is_err() {
         publish(app, &casino)
     }
-    Ok(())
+    ingested_result.map(|_| ())
 }
 pub(super) fn ingest_inbox(root: &Path, casino: &mut Casino) -> Result<bool> {
     Ok(ingest_inbox_inner(root, casino)?.0)

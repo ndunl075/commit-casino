@@ -62,7 +62,7 @@ fn run(failed: bool) -> VerificationRun {
         turn_id: "turn".into(),
         suite_id: "tests".into(),
         kind: CheckKind::Test,
-        started_sequence: 4,
+        started_sequence: 5,
         completed_sequence: if failed { 5 } else { 0 },
         passed: if failed { 0 } else { 1 },
         failed: if failed { 1 } else { 0 },
@@ -114,15 +114,15 @@ fn start(c: &mut Casino) {
 fn pass(c: &mut Casino, failed: bool) {
     event(c, 2, "turn-start", "turn", meta());
     event(c, 3, "tool-start", "turn", meta());
+    event(c, 4, "tool-end", "turn", meta());
     let mut m = meta();
     let mut started = run(false);
     started.passed = 0;
     m.verification = Some(started);
-    event(c, 4, "verified-run-started", "turn", m);
+    event(c, 5, "verified-run-started", "turn", m);
     let mut m = meta();
     m.verification = Some(run(failed));
-    event(c, 5, "verified-run-completed", "turn", m);
-    event(c, 6, "tool-end", "turn", meta());
+    event(c, 6, "verified-run-completed", "turn", m);
     event(c, 7, "stop-candidate", "turn", meta());
 }
 #[test]
@@ -245,5 +245,33 @@ fn failed_agent_credit_rolls_back_event_watermark_and_recovers() {
     c.ingest_passive(observation()).unwrap();
     c.ingest_passive(observation()).unwrap();
     assert_eq!(c.snapshot().unwrap()["wallet"]["balance"], 10100);
+    assert!(c.reconcile().unwrap());
+}
+
+#[test]
+fn contained_verification_is_stale_after_possible_mutation_tool_end() {
+    let mut c = game();
+    start(&mut c);
+    arm(&mut c, Category::CleanRun);
+    event(&mut c, 2, "turn-start", "turn", meta());
+    event(&mut c, 3, "tool-start", "turn", meta());
+    let mut started = run(false);
+    started.started_sequence = 4;
+    started.passed = 0;
+    let mut m = meta();
+    m.verification = Some(started.clone());
+    event(&mut c, 4, "verified-run-started", "turn", m);
+    started.passed = 1;
+    let mut m = meta();
+    m.verification = Some(started);
+    event(&mut c, 5, "verified-run-completed", "turn", m);
+    event(&mut c, 6, "tool-end", "turn", meta());
+    event(&mut c, 7, "stop-candidate", "turn", meta());
+    event(&mut c, 8, "session-end", "turn", meta());
+    assert_eq!(
+        c.agent_wagers().unwrap()[0].outcome,
+        Some(Category::Unknown)
+    );
+    assert_eq!(c.snapshot().unwrap()["wallet"]["balance"], 10000);
     assert!(c.reconcile().unwrap());
 }

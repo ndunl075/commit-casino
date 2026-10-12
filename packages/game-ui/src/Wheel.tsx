@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text } from 'pixi.js';
+// Pixi's static shader/uniform implementations support script-src 'self' without eval.
+import 'pixi.js/unsafe-eval';
 import { catalog } from '@commit-casino/roulette-engine';
 import type { CommittedRound } from '@commit-casino/casino-contracts';
 import { colorOf } from './geometry';
@@ -50,8 +52,9 @@ export function Wheel({ round, reducedMotion, visible = true, onComplete }: { ro
   useEffect(() => {
     if (!round) return;
     const elapsed = Math.max(0, Date.now() - Date.parse(round.presentation.committedAt));
+    const alreadyShown = round.presentation.presentationState === 'shown';
     const duration = reducedMotion || fallback || round.status === 'settled' ? Math.min(200, round.presentation.durationMs) : round.presentation.durationMs;
-    const start = performance.now() - (round.status === 'settled' ? duration : elapsed);
+    const start = performance.now() - (alreadyShown || round.status === 'settled' ? duration : elapsed);
     let frame = 0; let timer = 0; let complete = false;
     const tick = () => {
       if (document.hidden) return;

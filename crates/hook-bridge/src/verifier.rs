@@ -215,6 +215,47 @@ pub fn verified_run(
     session: &str,
     link: &str,
 ) -> BridgeResult<i32> {
+    verified_run_bound(root, suite, session, link, None)
+}
+/// Explicit terminal action. Commands and link attribution come only from the
+/// private registration/journal, never from CLI command text or hook input.
+pub fn verify_session(root: &Path, session: &str, suite_id: &str) -> BridgeResult<i32> {
+    if !crate::sanitizer::opaque(session) || !crate::sanitizer::opaque(suite_id) {
+        return Err(invalid("INVALID_SESSION_OR_SUITE"));
+    }
+    let path = root.join("suites").join(format!("{suite_id}.json"));
+    check_owned(&path)?;
+    if fs::metadata(&path)?.len() > 8192 {
+        return Err(invalid("SUITE_CONFIG_OVERSIZED"));
+    }
+    let suite: RegisteredSuite = serde_json::from_slice(&fs::read(path)?)?;
+    if suite.suite_id != suite_id {
+        return Err(invalid("SUITE_ID_MISMATCH"));
+    }
+    let (link, turn) = {
+        let _lock = lock_session(root, session)?;
+        let journal = load_journal(root, session)?;
+        if journal.evidence_gap || journal.ended || !journal.tool_turns.is_empty() {
+            return Err(invalid("AMBIGUOUS_RUN_ATTRIBUTION"));
+        }
+        let link = journal
+            .link_id
+            .ok_or_else(|| invalid("SESSION_LINK_REQUIRED"))?;
+        let attribution = crate::spool::read_link(root, &link)?;
+        if attribution.session_id.as_deref() != Some(session) {
+            return Err(invalid("SESSION_LINK_MISMATCH"));
+        }
+        (link, journal.turn_id.ok_or_else(|| invalid("NO_TURN"))?)
+    };
+    verified_run_bound(root, &suite, session, &link, Some(&turn))
+}
+fn verified_run_bound(
+    root: &Path,
+    suite: &RegisteredSuite,
+    session: &str,
+    link: &str,
+    expected_turn: Option<&str>,
+) -> BridgeResult<i32> {
     validate_suite(suite)?;
     if !crate::sanitizer::opaque(&suite.suite_id)
         || !crate::sanitizer::opaque(link)
@@ -254,7 +295,10 @@ pub fn verified_run(
         let mut journal = load_journal(root, session)?;
         if journal.evidence_gap
             || journal.ended
-            || journal.stopped
+            || (expected_turn.is_none() && journal.stopped)
+            || expected_turn.is_some_and(|turn| {
+                journal.turn_id.as_deref() != Some(turn) || !journal.tool_turns.is_empty()
+            })
             || journal.link_id.as_deref() != Some(link)
             || journal.turn_id.is_none()
         {
