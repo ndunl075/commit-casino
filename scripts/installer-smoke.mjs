@@ -1,13 +1,14 @@
 // Install, launch with no developer tools on PATH, then uninstall the owned test install.
 import {spawn,spawnSync} from 'node:child_process';
-import {existsSync,mkdirSync,writeFileSync} from 'node:fs';
+import {existsSync,mkdirSync,writeFileSync,readFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium,expect} from '@playwright/test';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 if(process.platform!=='win32')throw Error('Installer smoke requires Windows.');
 const directory=path.join(root,'.cache',`installer-smoke-${Date.now()}`);
-const setup=path.join(root,'apps/desktop/src-tauri/target/release/bundle/nsis/Commit Casino_0.1.0_x64-setup.exe');
+const version=JSON.parse(readFileSync(path.join(root,'package.json'),'utf8')).version;
+const setup=path.join(root,`apps/desktop/src-tauri/target/release/bundle/nsis/Commit Casino_${version}_x64-setup.exe`);
 const installed=spawnSync(setup,['/S',`/D=${directory}`],{windowsHide:true,stdio:'inherit'});
 if(installed.error||installed.status!==0)throw installed.error??Error('Installer failed');
 let child,browser;

@@ -12,6 +12,9 @@ draft. The service records and debits a round before its wheel animation starts;
 interruptions recover the recorded result and cannot produce a second payout.
 Settings include sound, reduced motion, fast animation, and window modes.
 
+The Windows package was tested by installing, launching without development
+tools on PATH, and uninstalling. Local data is preserved by uninstall.
+
 ## Install and play
 
 Use the Windows x64 installer from [Releases](https://github.com/ndunl075/commit-casino/releases).

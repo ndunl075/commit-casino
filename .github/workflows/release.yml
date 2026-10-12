@@ -39,4 +39,5 @@ jobs:
         run: |
           $taskVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
           if ($env:GITHUB_REF_NAME -ne "v$taskVersion") { throw 'Tag and package version differ' }
-          gh release create "$env:GITHUB_REF_NAME" "dist/release/$taskVersion/*" --title "Commit Casino $taskVersion" --notes-file docs/RELEASE_NOTES.md
+          $taskAssets = (Get-ChildItem -LiteralPath "dist/release/$taskVersion" -File).FullName
+          gh release create "$env:GITHUB_REF_NAME" @taskAssets --title "Commit Casino $taskVersion" --notes-file docs/RELEASE_NOTES.md
