@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { CasinoService, CasinoSnapshot, CommitClassicRequest, SettingsPatch } from '@commit-casino/casino-contracts';
+import type { IntegrationPort } from '@commit-casino/game-ui';
 
 const listeners = new Set<(snapshot: CasinoSnapshot) => void>();
 let revision = -1;
@@ -18,3 +19,10 @@ export const desktopService: CasinoService = {
  subscribe(listener) {listeners.add(listener);void snapshotCommand('get_snapshot').then(listener);return ()=>{listeners.delete(listener);};},
 };
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void snapshotCommand('get_snapshot');});
+export const desktopIntegration: IntegrationPort = {
+ status:()=>invoke('integration_status'),
+ preview:(projectPath:string)=>invoke('preview_integration',{projectPath}),
+ install:(projectPath:string)=>invoke('install_integration',{projectPath}),
+ disconnect:(projectPath:string)=>invoke('disconnect_integration',{projectPath}),
+ check:()=>invoke('integration_check'),
+};

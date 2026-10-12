@@ -12,7 +12,12 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-single-instance = "2"
 casino-core = { path = "../../../crates/casino-core" }
+commit-casino-bridge = { path = "../../../crates/hook-bridge" }
 serde_json = "1"
+notify = "8"
+
+[dev-dependencies]
+tempfile = "3"
 
 [[bin]]
 name = "commit-casino"

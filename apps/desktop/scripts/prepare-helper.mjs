@@ -1,0 +1,11 @@
+import {execFileSync} from 'node:child_process';
+import {mkdirSync,copyFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
+execFileSync('cargo',['build','--release','--locked','--manifest-path',path.join(root,'crates/hook-bridge/Cargo.toml')],{stdio:'inherit'});
+const host=execFileSync('rustc',['-vV'],{encoding:'utf8'}).match(/^host: (.+)$/m)?.[1];
+if(!host)throw new Error('Unable to determine Rust host target.');
+const destination=path.join(root,'apps/desktop/src-tauri/binaries');mkdirSync(destination,{recursive:true});
+const suffix=process.platform==='win32'?'.exe':'';
+copyFileSync(path.join(root,`crates/hook-bridge/target/release/commit-casino-bridge${suffix}`),path.join(destination,`commit-casino-bridge-${host}${suffix}`));
