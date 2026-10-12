@@ -1,0 +1,19 @@
+[package]
+name = "commit-casino"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Free offline roulette for developers"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+casino-core = { path = "../../../crates/casino-core" }
+serde_json = "1"
+
+[[bin]]
+name = "commit-casino"
+path = "src/main.rs"

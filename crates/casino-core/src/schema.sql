@@ -1,0 +1,15 @@
+BEGIN IMMEDIATE;
+CREATE TABLE wallet(id INTEGER PRIMARY KEY CHECK(id=1),balance INTEGER NOT NULL CHECK(balance BETWEEN 0 AND 9007199254740991),revision INTEGER NOT NULL,epoch INTEGER NOT NULL);
+INSERT INTO wallet VALUES(1,10000,0,0);
+CREATE TABLE app_state(id INTEGER PRIMARY KEY CHECK(id=1),revision INTEGER NOT NULL,stats TEXT NOT NULL);
+INSERT INTO app_state VALUES(1,0,'{"spins":0,"totalStake":0,"grossReturns":0,"netChange":0,"largestWin":0,"longestWinStreak":0,"currentWinStreak":0}');
+CREATE TABLE settings(id INTEGER PRIMARY KEY CHECK(id=1),json TEXT NOT NULL);
+CREATE TABLE rounds(id TEXT PRIMARY KEY,request_id TEXT NOT NULL UNIQUE,status TEXT NOT NULL CHECK(status IN ('committed','settled')),presentation TEXT NOT NULL CHECK(presentation IN ('pending','shown')),json TEXT NOT NULL,visible INTEGER NOT NULL DEFAULT 1);
+CREATE INDEX unresolved_rounds ON rounds(status,presentation);
+CREATE TABLE round_bets(round_id TEXT NOT NULL REFERENCES rounds(id),bet_id TEXT NOT NULL,stake INTEGER NOT NULL CHECK(stake>0),coverage TEXT NOT NULL,profit_odds INTEGER NOT NULL,PRIMARY KEY(round_id,bet_id));
+CREATE TABLE wallet_ledger(id TEXT PRIMARY KEY,epoch INTEGER NOT NULL,round_id TEXT REFERENCES rounds(id),kind TEXT NOT NULL,delta INTEGER NOT NULL,created_at TEXT NOT NULL);
+INSERT INTO wallet_ledger VALUES('initial',0,NULL,'initial',10000,strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+CREATE TABLE commands(request_id TEXT PRIMARY KEY,kind TEXT NOT NULL,payload TEXT NOT NULL,result TEXT NOT NULL);
+CREATE TABLE achievements(id TEXT PRIMARY KEY,round_id TEXT NOT NULL REFERENCES rounds(id),created_at TEXT NOT NULL);
+PRAGMA user_version=1;
+COMMIT;
