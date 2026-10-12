@@ -55,6 +55,8 @@ pub struct AgentObservation {
 struct EvidenceState {
     evidence: TurnEvidence,
     active_tools: HashSet<String>,
+    #[serde(default)]
+    possible_mutation_tools: HashSet<String>,
     active_runs: HashSet<String>,
 }
 
@@ -505,6 +507,7 @@ pub(crate) fn observe(tx: &Transaction, passive: &PassiveObservation<'_>) -> Res
                 unresolved_attention: false,
             },
             active_tools: HashSet::new(),
+            possible_mutation_tools: HashSet::new(),
             active_runs: HashSet::new(),
         };
         tx.execute(
@@ -560,10 +563,23 @@ pub(crate) fn observe(tx: &Transaction, passive: &PassiveObservation<'_>) -> Res
                     }
                     if a.effect.as_deref() != Some("read") {
                         state.evidence.last_mutation_sequence = passive.sequence;
+                        if let Some(tool) = &a.tool_id {
+                            state.possible_mutation_tools.insert(tool.clone());
+                        }
                     }
                 }
             }
             "tool-end" => {
+                // Shell tools can mutate after running their contained checks. Only
+                // separately observed verification after completion remains fresh.
+                let started_mutation = agent
+                    .and_then(|a| a.tool_id.as_ref())
+                    .is_some_and(|id| state.possible_mutation_tools.remove(id));
+                let possible_mutation =
+                    started_mutation || agent.is_none_or(|a| a.effect.as_deref() != Some("read"));
+                if possible_mutation {
+                    state.evidence.last_mutation_sequence = passive.sequence;
+                }
                 state.evidence.latest_stop_sequence = None;
                 state.evidence.unresolved_attention = false;
                 if agent

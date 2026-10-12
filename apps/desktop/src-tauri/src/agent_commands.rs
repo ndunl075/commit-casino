@@ -93,17 +93,34 @@ fn status(root: &Path, casino: &mut Casino) -> Result<Value> {
         json!({"revision":snapshot["revision"],"enabled":enabled,"message":if enabled{"Experimental local evidence mode. Arm before the next prompt. Fixed fictional-chip odds 1:1. Unknown, cancellation and fifteen-minute timeouts refund the stake. Local registered checks describe observations, not code correctness."}else{"Verified launcher attribution and registered required test suites must be configured first. Run commit-casino-bridge register-suite, require-suites, and launch-claude. Classic Roulette is always available."},"sessions":sessions,"wagers":wagers,"stats":snapshot["agentStats"]}),
     )
 }
-#[tauri::command]
-pub async fn agent_status(app: tauri::AppHandle, service: State<'_, Service>) -> Result<Value> {
-    let root = integration::root()?;
-    let mut casino = service.lock()?;
-    let ingested = integration::ingest_inbox(&root, &mut casino)?;
-    let expired = if integration::pending_hook_in_flight(&root) {
+fn refresh_agent(root: &Path, casino: &mut Casino) -> Result<bool> {
+    let ingestion = integration::ingest_inbox(root, casino);
+    let expired = if integration::pending_hook_in_flight(root) {
         false
     } else {
         casino.expire_agent(spool::now_ms())?
     };
-    let changed = ingested | expired;
+    // A provider outage must not prevent a native refund. Publish on ingestion
+    // errors too: earlier inbox events may already have committed.
+    Ok(ingestion.as_ref().copied().unwrap_or(false) | expired | ingestion.is_err())
+}
+fn refund_agent(
+    root: Option<&Path>,
+    casino: &mut Casino,
+    request_id: &str,
+    wager_id: &str,
+) -> Result<()> {
+    if let Some(root) = root {
+        let _ = integration::ingest_inbox(root, casino);
+    }
+    casino.void_agent(request_id, wager_id, false)?;
+    Ok(())
+}
+#[tauri::command]
+pub async fn agent_status(app: tauri::AppHandle, service: State<'_, Service>) -> Result<Value> {
+    let root = integration::root()?;
+    let mut casino = service.lock()?;
+    let changed = refresh_agent(&root, &mut casino)?;
     let result = status(&root, &mut casino)?;
     if changed {
         publish(&app, &casino)
@@ -185,13 +202,15 @@ pub async fn void_agent(
     request_id: String,
     wager_id: String,
 ) -> Result<Value> {
-    let root = integration::root()?;
-    let session = service.lock()?.agent_wager(&wager_id)?.session_id;
-    let _boundary_lock = checked(spool::lock_session(&root, &session))?;
+    let root = integration::root();
     let mut casino = service.lock()?;
-    integration::ingest_inbox(&root, &mut casino)?;
-    casino.void_agent(&request_id, &wager_id, false)?;
-    let result = status(&root, &mut casino)?;
+    refund_agent(root.as_deref().ok(), &mut casino, &request_id, &wager_id)?;
+    let result = status(
+        &root.unwrap_or_else(|_| {
+            std::env::temp_dir().join(format!("commit-casino-unavailable-{}", spool::now_ms()))
+        }),
+        &mut casino,
+    )?;
     publish(&app, &casino);
     Ok(result)
 }
@@ -276,6 +295,50 @@ mod tests {
         .unwrap();
         let casino = Casino::open(temp.path().join("wallet.db")).unwrap();
         (temp, root, casino)
+    }
+    #[test]
+    fn provider_storage_loss_cannot_strand_refunds() {
+        let (_temp, root, mut casino) = fixture();
+        let authority = || ArmAuthority {
+            installation_id: "installation".into(),
+            link_id: "link".into(),
+            watermark: 0,
+            required_suite_ids: vec!["tests".into()],
+            observed_at_ms: 1,
+        };
+        let request = |id: &str, revision| ArmAgentRequest {
+            request_id: id.into(),
+            expected_wallet_revision: revision,
+            session_id: "session".into(),
+            prediction: agent_core::Category::CleanRun,
+            stake: 100,
+        };
+        let wager = casino
+            .arm_agent(
+                request("a1a1a1a1-1111-4111-8111-111111111111", 0),
+                authority(),
+            )
+            .unwrap();
+        std::fs::rename(&root, root.with_file_name("provider-storage-lost")).unwrap();
+        std::fs::create_dir(&root).unwrap();
+        assert!(integration::ingest_inbox(&root, &mut casino).is_err());
+        assert!(refresh_agent(&root, &mut casino).unwrap());
+        assert_eq!(casino.agent_wager(&wager.wager_id).unwrap().status, "void");
+        let wager = casino
+            .arm_agent(
+                request("b2b2b2b2-2222-4222-8222-222222222222", 2),
+                authority(),
+            )
+            .unwrap();
+        refund_agent(
+            Some(&root),
+            &mut casino,
+            "c3c3c3c3-3333-4333-8333-333333333333",
+            &wager.wager_id,
+        )
+        .unwrap();
+        assert_eq!(casino.snapshot().unwrap()["wallet"]["balance"], 10000);
+        assert!(casino.reconcile().unwrap());
     }
     #[test]
     fn unseen_prompt_and_pending_hook_cannot_accept_stake() {
@@ -376,15 +439,15 @@ mod tests {
             "PreToolUse",
             json!({"tool_use_id":"runner-tool","tool_name":"Bash","tool_input":{"command":"private source path"}}),
         );
-        assert_eq!(
-            verifier::verified_run(&root, &suite, "native-agent-session", "native-test-link")
-                .unwrap(),
-            0
-        );
         enqueue(
             &root,
             "PostToolUse",
             json!({"tool_use_id":"runner-tool","tool_name":"Bash"}),
+        );
+        assert_eq!(
+            verifier::verified_run(&root, &suite, "native-agent-session", "native-test-link")
+                .unwrap(),
+            0
         );
         enqueue(&root, "Stop", json!({}));
         enqueue(&root, "SessionEnd", json!({}));
