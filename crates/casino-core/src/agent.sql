@@ -1,0 +1,10 @@
+BEGIN IMMEDIATE;
+CREATE TABLE agent_wagers(id TEXT PRIMARY KEY,installation_id TEXT NOT NULL,session_id TEXT NOT NULL,turn_id TEXT,status TEXT NOT NULL CHECK(status IN ('armed','bound','settled','void')),stake INTEGER NOT NULL,watermark INTEGER NOT NULL,expires_at_ms INTEGER NOT NULL,json TEXT NOT NULL,visible INTEGER NOT NULL DEFAULT 1);
+CREATE UNIQUE INDEX agent_unresolved_session ON agent_wagers(installation_id,session_id) WHERE status IN ('armed','bound');
+CREATE UNIQUE INDEX agent_turn_once ON agent_wagers(installation_id,session_id,turn_id) WHERE turn_id IS NOT NULL;
+CREATE TABLE agent_evidence(wager_id TEXT PRIMARY KEY REFERENCES agent_wagers(id),json TEXT NOT NULL);
+CREATE TABLE agent_observed_runs(run_id TEXT PRIMARY KEY,installation_id TEXT NOT NULL,session_id TEXT NOT NULL,turn_id TEXT NOT NULL,status TEXT NOT NULL);
+CREATE TABLE agent_achievements(id TEXT PRIMARY KEY,wager_id TEXT NOT NULL REFERENCES agent_wagers(id),created_at TEXT NOT NULL);
+ALTER TABLE integration_state ADD COLUMN agent_ready INTEGER NOT NULL DEFAULT 0;
+PRAGMA user_version=3;
+COMMIT;

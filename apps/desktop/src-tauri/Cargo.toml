@@ -16,6 +16,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-single-instance = "2"
 casino-core = { path = "../../../crates/casino-core" }
 commit-casino-bridge = { path = "../../../crates/hook-bridge" }
+agent-core = { path = "../../../crates/agent-core" }
 serde_json = "1"
 notify = "8"
 

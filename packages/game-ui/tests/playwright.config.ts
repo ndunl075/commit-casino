@@ -5,4 +5,5 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const vite = join(dirname(require.resolve('vite/package.json')), 'bin/vite.js');
 const config = fileURLToPath(new URL('./vite.config.ts', import.meta.url));
-export default defineConfig({ testDir: '.', testMatch: '*.spec.ts', fullyParallel: true, use: { baseURL: 'http://127.0.0.1:4176', viewport: { width: 1080, height: 760 } }, webServer: { command: `node "${vite}" --config "${config}"`, url: 'http://127.0.0.1:4176', reuseExistingServer: false } });
+const origin = `http://127.0.0.1:${process.env.CASINO_UI_TEST_PORT ?? '4176'}`;
+export default defineConfig({ testDir: '.', testMatch: '*.spec.ts', fullyParallel: true, use: { baseURL: origin, viewport: { width: 1080, height: 760 } }, webServer: { command: `node "${vite}" --config "${config}"`, url: origin, reuseExistingServer: false } });
