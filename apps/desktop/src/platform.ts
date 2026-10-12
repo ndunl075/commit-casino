@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { CasinoService, CasinoSnapshot, CommitClassicRequest, SettingsPatch } from '@commit-casino/casino-contracts';
-import type { IntegrationPort } from '@commit-casino/game-ui';
+import type { IntegrationPort,AgentPort } from '@commit-casino/game-ui';
 
 const listeners = new Set<(snapshot: CasinoSnapshot) => void>();
 let revision = -1;
@@ -25,4 +25,12 @@ export const desktopIntegration: IntegrationPort = {
  install:(projectPath:string)=>invoke('install_integration',{projectPath}),
  disconnect:(projectPath:string)=>invoke('disconnect_integration',{projectPath}),
  check:()=>invoke('integration_check'),
+ setAutoLaunch:(enabled:boolean)=>invoke('set_integration_auto_launch',{enabled}),
+ suppressSession:(sessionId:string)=>invoke('suppress_session_auto_launch',{sessionId}),
+};
+export const desktopAgent: AgentPort = {
+ status:()=>invoke('agent_status'),
+ arm:(request)=>invoke('arm_agent',{request}),
+ cancel:(requestId:string,wagerId:string)=>invoke('cancel_agent',{requestId,wagerId}),
+ void:(requestId:string,wagerId:string)=>invoke('void_agent',{requestId,wagerId}),
 };

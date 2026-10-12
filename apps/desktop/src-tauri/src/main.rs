@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 use tauri::{Emitter, Manager, State};
+mod agent_commands;
 mod integration;
 struct Service {
     casino: Mutex<Option<Casino>>,
@@ -57,6 +58,14 @@ fn window_mode(app: &tauri::AppHandle, mode: &str) {
             let _ = window.set_size(tauri::LogicalSize::new(width, height));
             let _ = window.center();
         }
+    }
+}
+fn show_passively(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_focusable(false);
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focusable(true);
     }
 }
 #[tauri::command]
@@ -152,6 +161,10 @@ fn passive_launch(args: impl Iterator<Item = String>) -> bool {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
+            if passive_launch(args.clone().into_iter()) {
+                show_passively(app);
+                return;
+            }
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 if !passive_launch(args.into_iter()) {
@@ -170,7 +183,12 @@ fn main() {
             let directory = app.path().app_data_dir()?;
             let opened = std::fs::create_dir_all(&directory)
                 .map_err(|_| lock_error())
-                .and_then(|_| Casino::open(directory.join("casino.sqlite3")));
+                .and_then(|_| Casino::open(directory.join("casino.sqlite3")))
+                .and_then(|mut casino| {
+                    casino.integration_connected(false)?;
+                    casino.agent_ready(false)?;
+                    Ok(casino)
+                });
             let (casino, startup_error) = match opened {
                 Ok(casino) => (Some(casino), None),
                 Err(error) => (None, Some(error)),
@@ -187,8 +205,10 @@ fn main() {
             integration::start_consumer(app.handle().clone());
             window_mode(app.handle(), &mode);
             if let Some(window) = app.get_webview_window("main") {
-                window.show()?;
-                if !passive_launch(std::env::args()) {
+                if passive_launch(std::env::args()) {
+                    show_passively(app.handle());
+                } else {
+                    window.show()?;
                     window.set_focus()?;
                 }
             }
@@ -206,7 +226,13 @@ fn main() {
             integration::preview_integration,
             integration::install_integration,
             integration::disconnect_integration,
-            integration::integration_check
+            integration::integration_check,
+            integration::set_integration_auto_launch,
+            integration::suppress_session_auto_launch,
+            agent_commands::agent_status,
+            agent_commands::arm_agent,
+            agent_commands::cancel_agent,
+            agent_commands::void_agent
         ])
         .run(tauri::generate_context!())
         .expect("Commit Casino window could not start. Saved data is preserved.");

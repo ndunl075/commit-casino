@@ -15,6 +15,7 @@ fn passive_lifecycle_is_contiguous_and_financially_isolated() {
         event_type,
         turn_id: Some("turn"),
         observed_at_ms: clock,
+        agent: None,
     };
     assert!(c.ingest_passive(event(2, "turn-start")).is_err());
     assert!(c.ingest_passive(event(1, "session-start")).unwrap());

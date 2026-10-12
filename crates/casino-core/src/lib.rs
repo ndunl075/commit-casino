@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{collections::HashSet, path::Path, time::Duration};
 use uuid::Uuid;
+pub mod agent;
 
 pub const SAFE: i64 = 9_007_199_254_740_991;
 const CATALOG: &str = include_str!("../../../rules/european-v1.json");
@@ -124,6 +125,8 @@ pub struct Stats {
     pub largest_win: i64,
     pub longest_win_streak: i64,
     pub current_win_streak: i64,
+    #[serde(default)]
+    pub bet_frequencies: std::collections::BTreeMap<String, i64>,
 }
 pub struct Casino {
     db: Connection,
@@ -137,6 +140,7 @@ pub struct PassiveObservation<'a> {
     pub event_type: &'a str,
     pub turn_id: Option<&'a str>,
     pub observed_at_ms: u64,
+    pub agent: Option<agent::AgentObservation>,
 }
 fn now() -> String {
     Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
@@ -151,7 +155,7 @@ fn encode<T: Serialize>(value: &T) -> Result<String> {
 }
 fn checked(a: i64, b: i64) -> Result<i64> {
     a.checked_add(b)
-        .filter(|v| v.abs() <= SAFE)
+        .filter(|v| (-SAFE..=SAFE).contains(v))
         .ok_or_else(|| Error::new("OVERFLOW", "Chip total exceeds the safe integer limit."))
 }
 /// Reject the incomplete tail of the u32 range, rather than introducing modulo bias.
@@ -215,6 +219,7 @@ impl Casino {
             event_type,
             turn_id,
             observed_at_ms,
+            ..
         } = observation;
         if sequence > SAFE as u64 || observed_at_ms > SAFE as u64 {
             return Err(Error::new(
@@ -262,6 +267,7 @@ impl Casino {
             "DELETE FROM passive_events WHERE observed_at_ms<?1",
             [observed_at_ms.saturating_sub(30 * 86_400_000)],
         )?;
+        agent::observe(&tx, &observation)?;
         bump(&tx)?;
         tx.commit()?;
         Ok(true)
@@ -276,7 +282,7 @@ impl Casino {
             "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;",
         )?;
         let version: i64 = db.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-        if version > 2 {
+        if version > 3 {
             return Err(Error::new(
                 "VERSION_MISMATCH",
                 "This database needs a newer Commit Casino. Preserve your data.",
@@ -311,6 +317,16 @@ impl Casino {
         }
         if version < 2 {
             db.execute_batch(include_str!("integration.sql"))?;
+        }
+        if version == 2 && path.as_ref() != Path::new(":memory:") {
+            db.backup(
+                rusqlite::DatabaseName::Main,
+                path.as_ref().with_extension("pre-v3.sqlite3"),
+                None,
+            )?;
+        }
+        if version < 3 {
+            db.execute_batch(include_str!("agent.sql"))?;
         }
         let catalog: Catalog = serde_json::from_str(CATALOG)?;
         validate_catalog(&catalog)?;
@@ -423,7 +439,20 @@ impl Casino {
             ));
         }
         for gross in returns {
-            checked(balance - stake, gross)?;
+            checked(checked(balance - stake, gross)?, agent::obligations(&tx)?)?;
+        }
+        // Lifetime aggregates are also JS-safe: reject before debit, never during an earned credit.
+        let stats_json: String =
+            tx.query_row("SELECT stats FROM app_state WHERE id=1", [], |r| r.get(0))?;
+        let stats: Stats = serde_json::from_str(&stats_json)?;
+        let maximum = *returns.iter().max().unwrap_or(&0);
+        checked(stats.spins, 1)?;
+        checked(stats.total_stake, stake)?;
+        checked(stats.gross_returns, maximum)?;
+        checked(stats.net_change, -stake)?;
+        checked(stats.net_change, maximum - stake)?;
+        for bet in &request.bets {
+            checked(*stats.bet_frequencies.get(&bet.bet_id).unwrap_or(&0), 1)?;
         }
         let outcome = uniform_pocket(&mut draw)?;
         let seed = draw()?;
@@ -514,6 +543,10 @@ impl Casino {
             0
         };
         stats.longest_win_streak = stats.longest_win_streak.max(stats.current_win_streak);
+        for bet in &round.bets {
+            let count = stats.bet_frequencies.entry(bet.bet_id.clone()).or_default();
+            *count = checked(*count, 1)?;
+        }
         tx.execute(
             "UPDATE app_state SET stats=?1 WHERE id=1",
             [encode(&stats)?],
@@ -578,7 +611,7 @@ impl Casino {
             return Ok(serde_json::from_str(&previous)?);
         }
         if tx.query_row(
-            "SELECT COUNT(*) FROM rounds WHERE status='committed'",
+            "SELECT (SELECT COUNT(*) FROM rounds WHERE status='committed') + (SELECT COUNT(*) FROM agent_wagers WHERE status IN ('armed','bound'))",
             [],
             |r| r.get::<_, i64>(0),
         )? > 0
@@ -654,7 +687,7 @@ impl Casino {
             return Ok(serde_json::from_str(&previous)?);
         }
         if tx.query_row(
-            "SELECT COUNT(*) FROM rounds WHERE status='committed' OR presentation='pending'",
+            "SELECT (SELECT COUNT(*) FROM rounds WHERE status='committed' OR presentation='pending') + (SELECT COUNT(*) FROM agent_wagers WHERE status IN ('armed','bound'))",
             [],
             |r| r.get::<_, i64>(0),
         )? > 0
@@ -665,6 +698,7 @@ impl Casino {
             ));
         }
         tx.execute("UPDATE rounds SET visible=0", [])?;
+        tx.execute("UPDATE agent_wagers SET visible=0", [])?;
         tx.execute(
             "UPDATE app_state SET stats=?1 WHERE id=1",
             [encode(&Stats::default())?],
@@ -773,7 +807,9 @@ fn snapshot_db(db: &Connection) -> Result<Value> {
     let settings: String =
         db.query_row("SELECT json FROM settings WHERE id=1", [], |r| r.get(0))?;
     let stats: String = db.query_row("SELECT stats FROM app_state WHERE id=1", [], |r| r.get(0))?;
-    let mut q = db.prepare("SELECT id FROM achievements ORDER BY id")?;
+    let mut q = db.prepare(
+        "SELECT id FROM achievements UNION SELECT id FROM agent_achievements ORDER BY id",
+    )?;
     let achievements = q
         .query_map([], |r| r.get::<_, String>(0))?
         .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -782,8 +818,14 @@ fn snapshot_db(db: &Connection) -> Result<Value> {
         [],
         |r| r.get(0),
     )?;
+    let agent_ready: bool = db.query_row(
+        "SELECT agent_ready FROM integration_state WHERE id=1",
+        [],
+        |r| r.get(0),
+    )?;
+    let outstanding:i64=db.query_row("SELECT (SELECT COALESCE(SUM(stake),0) FROM agent_wagers WHERE status IN ('armed','bound'))+(SELECT COALESCE(SUM(json_extract(json,'$.stake')),0) FROM rounds WHERE status='committed')",[],|r|r.get(0))?;
     Ok(
-        json!({"revision":state_revision,"wallet":{"balance":balance,"revision":revision,"epoch":epoch},"activeRound":active,"history":rounds,"settings":serde_json::from_str::<Settings>(&settings)?,"stats":serde_json::from_str::<Stats>(&stats)?,"achievements":achievements,"features":{"agentIntegration":connected,"agentRoulette":false},"sessions":passive_sessions_db(db)?}),
+        json!({"revision":state_revision,"wallet":{"balance":balance,"revision":revision,"epoch":epoch},"outstandingStakes":outstanding,"activeRound":active,"history":rounds,"settings":serde_json::from_str::<Settings>(&settings)?,"stats":serde_json::from_str::<Stats>(&stats)?,"agentStats":agent::statistics(db)?,"achievements":achievements,"features":{"agentIntegration":connected,"agentRoulette":connected&&agent_ready},"sessions":passive_sessions_db(db)?}),
     )
 }
 fn passive_sessions_db(db: &Connection) -> Result<Vec<Value>> {
@@ -793,5 +835,7 @@ fn passive_sessions_db(db: &Connection) -> Result<Vec<Value>> {
     Ok(rows)
 }
 
+#[cfg(test)]
+mod agent_tests;
 #[cfg(test)]
 mod tests;

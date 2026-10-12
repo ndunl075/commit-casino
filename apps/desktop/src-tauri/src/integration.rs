@@ -20,7 +20,7 @@ fn error(message: impl Into<String>) -> Error {
 fn bridge<T>(result: commit_casino_bridge::BridgeResult<T>) -> Result<T> {
     result.map_err(|e| error(format!("Passive integration unavailable: {e}")))
 }
-fn root() -> Result<PathBuf> {
+pub(super) fn root() -> Result<PathBuf> {
     let base = std::env::var_os("LOCALAPPDATA")
         .ok_or_else(|| error("Windows app data directory unavailable."))?;
     let root = PathBuf::from(base).join("CommitCasino/integration");
@@ -250,6 +250,7 @@ pub fn start_consumer(app: tauri::AppHandle) {
         })
         .ok();
         let mut watching = false;
+        let mut last_auto_show: Option<Instant> = None;
         loop {
             if !watching {
                 if let (Some(watcher), Ok(root)) = (&mut watcher, root()) {
@@ -262,22 +263,50 @@ pub fn start_consumer(app: tauri::AppHandle) {
                 }
             }
             let _ = rx.recv_timeout(Duration::from_millis(750));
-            let _ = consume(&app);
+            let _ = consume(&app, &mut last_auto_show);
         }
     });
 }
-fn consume(app: &tauri::AppHandle) -> Result<()> {
+fn consume(app: &tauri::AppHandle, last_auto_show: &mut Option<Instant>) -> Result<()> {
     let root = root()?;
     let state = app.state::<Service>();
     let mut casino = state.lock()?;
-    if ingest_inbox(&root, &mut casino)? {
+    let (ingested, prompts) = ingest_inbox_inner(&root, &mut casino)?;
+    let expired = if pending_hook_in_flight(&root) {
+        false
+    } else {
+        casino.expire_agent(spool::now_ms())?
+    };
+    if root.exists() {
+        let _ = spool::atomic_write(
+            &root.join("desktop-state.json"),
+            &serde_json::to_vec(&json!({"lastSeenMs":spool::now_ms(),"pid":std::process::id()}))
+                .unwrap_or_default(),
+        );
+    }
+    if last_auto_show.is_none_or(|last| last.elapsed() > Duration::from_secs(3))
+        && spool::load_config(&root).is_ok_and(|c| c.auto_launch)
+        && prompts.iter().any(|session| !suppressed(&root, session))
+    {
+        crate::show_passively(app);
+        *last_auto_show = Some(Instant::now());
+    }
+    if ingested || expired {
         publish(app, &casino)
     }
     Ok(())
 }
-fn ingest_inbox(root: &Path, casino: &mut Casino) -> Result<bool> {
+pub(super) fn ingest_inbox(root: &Path, casino: &mut Casino) -> Result<bool> {
+    Ok(ingest_inbox_inner(root, casino)?.0)
+}
+fn ingest_inbox_inner(root: &Path, casino: &mut Casino) -> Result<(bool, Vec<String>)> {
     if !root.exists() {
-        return Ok(false);
+        return Ok((false, vec![]));
+    }
+    // Enqueue publishes before removing its watchdog ticket. Let live hooks finish;
+    // abandoned tickets remain visible to load_journal and force Unknown afterward.
+    if pending_hook_in_flight(root) {
+        return Ok((false, vec![]));
     }
     let config = bridge(spool::load_config(root))?;
     bridge(spool::check_owned(&root.join("inbox")))?;
@@ -308,6 +337,7 @@ fn ingest_inbox(root: &Path, casino: &mut Casino) -> Result<bool> {
             .push(event);
     }
     let mut changed = false;
+    let mut prompts = vec![];
     for (session, mut events) in sessions {
         events.sort_by_key(|e| e.source_sequence);
         if events
@@ -335,14 +365,120 @@ fn ingest_inbox(root: &Path, casino: &mut Casino) -> Result<bool> {
                 event_type: kind["type"].as_str().unwrap_or(""),
                 turn_id: event.turn_id.as_deref(),
                 observed_at_ms: event.observed_at_ms,
+                agent: Some(crate::agent_commands::normalize_observation(root, &event)),
             })?;
             watermark = event.source_sequence;
+            if event.observation.kind == commit_casino_bridge::sanitizer::HookType::TurnStart
+                && spool::now_ms().saturating_sub(event.observed_at_ms) < 5000
+            {
+                prompts.push(session.clone());
+            }
             bridge(spool::acknowledge(root, &event, watermark))?;
         }
     }
-    Ok(changed)
+    Ok((changed, prompts))
+}
+fn suppressed(root: &Path, session: &str) -> bool {
+    let path = root.join("suppressed-sessions.json");
+    if !path.exists() {
+        return false;
+    }
+    if spool::check_owned(&path).is_err() || fs::metadata(&path).map_or(true, |m| m.len() > 65536) {
+        return true;
+    }
+    let Ok(bytes) = fs::read(path) else {
+        return true;
+    };
+    let Ok(value) = serde_json::from_slice::<Value>(&bytes) else {
+        return true;
+    };
+    value["sessionIds"]
+        .as_array()
+        .is_none_or(|sessions| sessions.iter().any(|id| id == session))
 }
 
+pub(super) fn pending_hook_in_flight(root: &Path) -> bool {
+    let Ok(entries) = fs::read_dir(root.join("pending-hooks")) else {
+        return false;
+    };
+    entries
+        .take(spool::MAX_PENDING)
+        .filter_map(std::result::Result::ok)
+        .any(|entry| {
+            let path = entry.path();
+            if spool::check_owned(&path).is_err()
+                || fs::metadata(&path).map_or(true, |m| m.len() > 64)
+            {
+                return false;
+            }
+            let Ok(bytes) = fs::read(path) else {
+                return false;
+            };
+            let Ok(started) = serde_json::from_slice::<u64>(&bytes) else {
+                return false;
+            };
+            spool::now_ms().saturating_sub(started) < 300
+        })
+}
+#[tauri::command]
+pub async fn set_integration_auto_launch(
+    app: tauri::AppHandle,
+    service: State<'_, Service>,
+    enabled: bool,
+) -> Result<Value> {
+    let root = root()?;
+    let mut config = bridge(spool::load_config(&root))?;
+    config.auto_launch = enabled;
+    config.desktop_executable = std::env::current_exe().ok();
+    bridge(spool::atomic_write(
+        &root.join("config.json"),
+        &serde_json::to_vec_pretty(&config).map_err(|_| error("Configuration unavailable."))?,
+    ))?;
+    status(&app, &service)
+}
+#[tauri::command]
+pub async fn suppress_session_auto_launch(
+    app: tauri::AppHandle,
+    service: State<'_, Service>,
+    session_id: String,
+) -> Result<Value> {
+    if !commit_casino_bridge::sanitizer::opaque(&session_id) {
+        return Err(error("Invalid session ID."));
+    }
+    let root = root()?;
+    let path = root.join("suppressed-sessions.json");
+    let mut sessions = if path.exists() {
+        bridge(spool::check_owned(&path))?;
+        if fs::metadata(&path)
+            .map_err(|_| error("Launch preferences unavailable."))?
+            .len()
+            > 8192
+        {
+            return Err(error("Launch preferences invalid."));
+        }
+        let value: Value = serde_json::from_slice(
+            &fs::read(&path).map_err(|_| error("Launch preferences unavailable."))?,
+        )
+        .map_err(|_| error("Launch preferences invalid."))?;
+        value["sessionIds"].as_array().cloned().unwrap_or_default()
+    } else {
+        vec![]
+    };
+    if !sessions.iter().any(|s| s == &session_id) {
+        sessions.push(json!(session_id));
+    }
+    if sessions.len() > 100 {
+        sessions.remove(0);
+    }
+    bridge(spool::atomic_write(
+        &path,
+        &serde_json::to_vec(&json!({"sessionIds":sessions}))
+            .map_err(|_| error("Launch preferences unavailable."))?,
+    ))?;
+    let mut result = status(&app, &service)?;
+    result["message"]=json!("Automatic opening is suppressed for this provider session. Manual launch and passive observations remain available.");
+    Ok(result)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
