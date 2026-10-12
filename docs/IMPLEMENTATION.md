@@ -10,7 +10,7 @@ installation and provider lifecycle checks must be observed before claiming supp
 | Service and storage contracts | Versioned TypeScript/Zod command schemas and DTOs | Strict TypeScript and contract tests |
 | Browser transactional service | IndexedDB authority, serialized transactions, ledger, recovery, explicit temporary mode | 22 storage tests, cross-tab conflicts, replay and injected write failures |
 | Shared game UI | Astra React/Pixi table, wheel, keyboard picker, audio, settings, detailed history/statistics | 157 direct targets; four browser end-to-end flows; nine isolated UI regressions; compact/standard screenshots |
-| Native authority | Rust/SQLite wallet, migrations, ledger, outcomes, settings and window commands | 17 wallet tests including 5,809 native payout combinations; strict Clippy/formatting; native inbox tests |
+| Native authority | Rust/SQLite wallet, migrations, ledger, outcomes, settings and window commands | 18 wallet tests including 5,809 native payout combinations; strict Clippy/formatting; native inbox tests |
 | Passive Claude helper | Compiled bounded signed inbox, explicit hook preview/install/disconnect, optional auto-open | Privacy/signature/replay/watchdog/ownership tests; actual Claude 2.1.287 isolated lifecycle checks |
 | Agent evidence and prediction | Locked pre-prompt arming, attributed structured checks, conservative boundaries, fixed odds, refunds and recovery | Shared Rust/TS policy fixtures; actual pinned runner processes; native registered Vitest→signed inbox→SQLite payout/restart |
 | Windows distribution | Offline WebView2 NSIS installer, compiled helper and license inventory | Actual WebView2 UI→IPC→SQLite smoke; settled restart and process kill during unshown spin recover recorded payout once |
@@ -38,12 +38,20 @@ one-second native animation sample recorded 181 animation callbacks averaging
 5.53 ms on the test machine; this is frame pacing evidence, not a GPU benchmark
 or a performance guarantee for all hardware.
 
-All 110 current TypeScript unit/contract tests pass, along with ESLint, strict
+All 111 current TypeScript unit/contract tests pass, along with ESLint, strict
 TypeScript, native tests, Rust formatting and strict Clippy. Browser Playwright
 checks cover offline reload after initial cache installation, local persistence,
 draft operations, payout arithmetic and every direct table target. Graphics-loss,
 hidden-wheel, stale async responses, observer drafts and retry safety have
 separate UI regression cases.
+
+Final audit regressions cover a shell changing files after its contained tests
+and unavailable provider storage. Mutating tool completion invalidates earlier
+contained checks; dedicated verification runs after tools finish. Native timeout
+and explicit refunds remain available when helper storage fails. The actual
+installer was installed into an owned test directory, launched with no Node or
+Rust on its runtime PATH, checked for its bundled helper/notices, and uninstalled
+successfully while preserving wallet data.
 
 Unsigned installer prompts are expected. First-time offline installation bundles
 WebView2; users do not need development tools. No macOS/Linux release is claimed.

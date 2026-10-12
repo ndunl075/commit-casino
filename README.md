@@ -46,6 +46,11 @@ unsupported observations, canceled checks, missing boundaries and timeouts
 refund the stake. These labels describe observed checks, not task correctness.
 See the [architecture and evidence policy](ARCHITECTURE.md).
 
+Final checks must follow the last potentially mutating tool. Use the registered
+`verify-session SESSION_ID SUITE_ID` helper from a separate terminal after tool
+completion and before the next turn boundary. Checks inside a shell that can
+subsequently change files are conservatively stale and refund Unknown.
+
 ## Develop
 
 Tested with Node 22.23.2 and Rust 1.99 MSVC on Windows x64. Use Node 22.12+,
@@ -69,6 +74,7 @@ npm run build:desktop
 npm run test:desktop
 # Rebuild the default release after the isolated smoke-feature executable:
 npm run build:desktop
+npm run test:installer
 npm run package:release
 ```
 
