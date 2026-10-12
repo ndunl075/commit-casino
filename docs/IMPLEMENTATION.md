@@ -53,5 +53,5 @@ installer was installed into an owned test directory, launched with no Node or
 Rust on its runtime PATH, checked for its bundled helper/notices, and uninstalled
 successfully while preserving wallet data.
 
-Unsigned installer prompts are expected. First-time offline installation bundles
+Both Windows executables statically link the Visual C++ runtime; packaging audits PE imports to reject an accidental external runtime dependency. Unsigned installer prompts are expected. First-time offline installation bundles
 WebView2; users do not need development tools. No macOS/Linux release is claimed.
