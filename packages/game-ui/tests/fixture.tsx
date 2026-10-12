@@ -21,7 +21,7 @@ class FakeService implements CasinoService {
     if (this.deferred) return new Promise<CommittedRound>(resolve => { this.resolveCommit = resolve; });
     if (this.storedRound) return structuredClone(this.storedRound);
     this.storedRound = round(request.requestId); this.storedRound.presentation.roundId = this.storedRound.roundId;
-    this.state = { ...this.state, revision: 2, wallet: { balance: 27500, revision: 2, epoch: 0 }, history: [this.storedRound], stats: { ...emptyStats(), spins: 1 } }; this.publish();
+    this.state = { ...this.state, revision: 2, wallet: { balance: 27500, revision: 2, epoch: 0 }, history: [this.storedRound], stats: { ...emptyStats(), spins: 1, betFrequencies: { 'straight:7': 1 } } }; this.publish();
     if (this.lostResponse) throw new Error('Response lost after commit');
     return structuredClone(this.storedRound);
   }

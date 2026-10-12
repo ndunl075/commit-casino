@@ -49,3 +49,28 @@ test('idempotent retry preserves a presented result without stale spin audio', a
   const state = await page.evaluate(() => ({ requests: window.regression.requests, sounds: window.regression.sounds }));
   expect(state.requests).toHaveLength(2); expect(state.requests[0]).toBe(state.requests[1]); expect(state.sounds.filter(s => s === 'spin')).toEqual([]);
 });
+
+test('graphics loss reveals the recorded result promptly without a new wager', async ({ page }) => {
+  await page.goto('/?scenario=observer');
+  await page.locator('.wheel-view canvas').waitFor();
+  await page.evaluate(() => window.regression.observer());
+  await expect(page.getByText('The wheel is turning', { exact: true })).toBeVisible();
+  await page.locator('.wheel-view canvas').dispatchEvent('webglcontextlost');
+  await expect(page.getByText('Simple wheel display', { exact: true })).toBeVisible();
+  await expect(page.getByText('net chips', { exact: true })).toBeVisible({ timeout: 1200 });
+  await expect(page.locator('.result-number')).toHaveText('7');
+  expect(await page.evaluate(() => window.regression.requests)).toEqual([]);
+});
+
+test('retained round details and authoritative bet frequencies are accessible', async ({ page }) => {
+  await page.goto('/?scenario=retry');
+  await page.locator('[data-bet-id="straight:7"]').click();
+  await page.getByRole('button', { name: 'SPIN', exact: false }).click();
+  await page.getByText('net chips', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await page.locator('summary').click();
+  await expect(page.getByText('500 staked · 18,000 returned', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await page.getByRole('button', { name: 'Statistics', exact: true }).click();
+  await expect(page.locator('.bet-frequencies li')).toHaveText('Straight 71 round');
+});

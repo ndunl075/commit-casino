@@ -44,6 +44,7 @@ export function AgentPanel({ agent, wallet, status: suppliedStatus, onStatus, on
   const [status, setStatus] = useState<AgentStatus | null>(suppliedStatus);
   const [sessionId, setSessionId] = useState(''); const [prediction, setPrediction] = useState<AgentPrediction>('Clean Run');
   const [stake, setStake] = useState(100); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [historyPage, setHistoryPage] = useState(0);
   const [confirmation, setConfirmation] = useState<AgentWager | null>(null);
   const [uncertain, setUncertain] = useState(Boolean(pending.current));
   const retryNotice = 'A previous request is awaiting confirmation. Retry it to safely recover the same result.';
@@ -81,6 +82,8 @@ export function AgentPanel({ agent, wallet, status: suppliedStatus, onStatus, on
   const sessionWager = outstanding.find(wager => wager.sessionId === sessionId);
   const canArm = Boolean(status?.enabled && selectedSession?.eligible && !sessionWager && stake > 0 && stake <= wallet.balance && !busy && !uncertain);
   const resolved = status?.wagers.filter(wager => wager.status === 'settled' || wager.status === 'void') ?? [];
+  const pageCount = Math.max(1, Math.ceil(resolved.length / 10));
+  const currentPage = Math.min(historyPage, pageCount - 1);
   return <div className="agent-panel">
     <p className="eyebrow">A PREDICTION GAME · FIXED 1:1 PROFIT ODDS</p>
     <p className="modal-intro">Call the next turn.<br/>Let the evidence decide.</p>
@@ -97,6 +100,6 @@ export function AgentPanel({ agent, wallet, status: suppliedStatus, onStatus, on
     <p className="agent-policy">No verified result means <strong>Unknown</strong> and a full stake refund. An unbound prediction expires after 15 minutes; a bound prediction is voided after 15 minutes without a valid terminal boundary. You can cancel before binding or explicitly void a pending turn for a refund. These labels describe observed checks, not proof that the coding task is correct.</p>
     {outstanding.length ? <section className="outstanding-wagers"><h3>At the table</h3>{outstanding.map(wager => <div key={wager.wagerId} className="agent-wager"><div><span className="eyebrow">{wager.status === 'armed' ? 'ARMED · WAITING FOR NEXT TURN' : 'LOCKED · TURN IN PROGRESS'}</span><strong>{wager.prediction}</strong><p>{formatChips(wager.stake)} chips · Session {wager.sessionId.slice(0, 12)}</p><small>{wager.reason || (wager.status === 'armed' ? 'You can cancel until the turn binds.' : 'Waiting for a verified terminal boundary.')}</small></div><button disabled={busy || uncertain} onClick={() => setConfirmation(wager)}>{wager.status === 'armed' ? 'Cancel & refund' : 'Void & refund'}</button></div>)}</section> : null}
     {confirmation ? <section className="agent-confirmation" aria-label="Refund confirmation"><h3>{confirmation.status === 'armed' ? 'Cancel this prediction?' : 'Void this pending turn?'}</h3><p>{formatChips(confirmation.stake)} chips will be returned. This is a refund and does not count as a predicted win.</p><div className="confirm-actions"><button disabled={busy || uncertain} onClick={() => setConfirmation(null)}>Keep prediction</button><button className="primary-button" disabled={busy || uncertain} onClick={() => void perform({ kind: confirmation.status === 'armed' ? 'cancel' : 'void', requestId: crypto.randomUUID(), wagerId: confirmation.wagerId })}>Confirm refund</button></div></section> : null}
-    {resolved.length ? <section className="resolved-wagers"><h3>Recorded outcomes</h3>{resolved.slice(0, 10).map(wager => <AgentOutcome key={wager.wagerId} wager={wager}/>)}</section> : null}
+    {resolved.length ? <section className="resolved-wagers"><h3>Recorded outcomes</h3>{resolved.slice(currentPage * 10, currentPage * 10 + 10).map(wager => <AgentOutcome key={wager.wagerId} wager={wager}/>)}{pageCount > 1 ? <div className="pagination"><button disabled={currentPage === 0} onClick={() => setHistoryPage(currentPage - 1)}>Previous outcomes</button><span>Page {currentPage + 1} of {pageCount}</span><button disabled={currentPage + 1 === pageCount} onClick={() => setHistoryPage(currentPage + 1)}>Next outcomes</button></div> : null}</section> : null}
   </div>;
 }

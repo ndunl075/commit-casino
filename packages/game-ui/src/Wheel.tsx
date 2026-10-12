@@ -6,7 +6,7 @@ import { colorOf } from './geometry';
 import { POCKET_ANGLE, TAU, wheelPose } from './wheelMath';
 
 type Scene = { app: Application; wheel: Container; ball: Container };
-export function Wheel({ round, reducedMotion, onComplete }: { round: CommittedRound | null; reducedMotion: boolean; onComplete: (round: CommittedRound) => void }) {
+export function Wheel({ round, reducedMotion, visible = true, onComplete }: { round: CommittedRound | null; reducedMotion: boolean; visible?: boolean; onComplete: (round: CommittedRound) => void }) {
   const host = useRef<HTMLDivElement>(null);
   const scene = useRef<Scene | null>(null);
   const latest = useRef({ round, reducedMotion, onComplete }); latest.current = { round, reducedMotion, onComplete };
@@ -50,21 +50,26 @@ export function Wheel({ round, reducedMotion, onComplete }: { round: CommittedRo
   useEffect(() => {
     if (!round) return;
     const elapsed = Math.max(0, Date.now() - Date.parse(round.presentation.committedAt));
-    const duration = reducedMotion || round.status === 'settled' ? Math.min(200, round.presentation.durationMs) : round.presentation.durationMs;
+    const duration = reducedMotion || fallback || round.status === 'settled' ? Math.min(200, round.presentation.durationMs) : round.presentation.durationMs;
     const start = performance.now() - (round.status === 'settled' ? duration : elapsed);
-    let frame = 0; let complete = false;
+    let frame = 0; let timer = 0; let complete = false;
     const tick = () => {
+      if (document.hidden) return;
       const t = Math.min(1, (performance.now() - start) / Math.max(duration, 1));
       const pose = wheelPose(reducedMotion ? 1 : t, round.presentation.pocketIndex, round.presentation.animationSeed);
       const s = scene.current;
-      if (s && !fallback) { s.wheel.rotation = pose.wheel; s.ball.position.set(Math.cos(pose.ball) * pose.radius, Math.sin(pose.ball) * pose.radius); s.app.render(); }
+      if (s && visible && !fallback) {
+        s.wheel.rotation = pose.wheel; s.ball.position.set(Math.cos(pose.ball) * pose.radius, Math.sin(pose.ball) * pose.radius);
+        try { s.app.render(); } catch { setFallback(true); return; }
+      }
       if (t >= 1) { if (!complete) { complete = true; latest.current.onComplete(round); } return; }
-      if (!document.hidden) frame = requestAnimationFrame(tick);
+      if (visible && !fallback && !reducedMotion) frame = requestAnimationFrame(tick);
+      else timer = window.setTimeout(tick, Math.max(1, duration - (performance.now() - start)));
     };
-    const visibility = () => { cancelAnimationFrame(frame); if (!document.hidden) tick(); };
+    const visibility = () => { cancelAnimationFrame(frame); window.clearTimeout(timer); if (!document.hidden) tick(); };
     tick(); document.addEventListener('visibilitychange', visibility);
-    return () => { cancelAnimationFrame(frame); document.removeEventListener('visibilitychange', visibility); };
-  }, [round?.roundId, ready, reducedMotion, fallback]);
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); document.removeEventListener('visibilitychange', visibility); };
+  }, [round?.roundId, ready, reducedMotion, fallback, visible]);
   return <div className="wheel-view" ref={host} role="img" aria-label="European roulette wheel, 37 pockets">
     {fallback ? <div className="wheel-fallback"><span>EUROPEAN ROULETTE</span><strong>{round?.outcome ?? '0'}</strong><small>Simple wheel display</small></div> : null}
     <div className="wheel-pointer" aria-hidden="true" />
