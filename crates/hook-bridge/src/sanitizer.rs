@@ -34,6 +34,8 @@ pub struct SanitizedHook {
     pub effect: Option<ToolEffect>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attention: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_status: Option<String>,
 }
 pub fn opaque(s: &str) -> bool {
     !s.is_empty()
@@ -60,6 +62,7 @@ pub fn sanitize(bytes: &[u8]) -> BridgeResult<SanitizedHook> {
         tool_id: None,
         effect: None,
         attention: None,
+        tool_status: None,
     };
     hook.kind = match raw["hook_event_name"].as_str() {
         Some("SessionStart") => HookType::SessionStart,
@@ -82,6 +85,11 @@ pub fn sanitize(bytes: &[u8]) -> BridgeResult<SanitizedHook> {
             HookType::AttentionRequested
         }
         Some(event @ ("PreToolUse" | "PostToolUse" | "PostToolUseFailure")) => {
+            hook.tool_status = match event {
+                "PostToolUse" => Some("success".into()),
+                "PostToolUseFailure" => Some("failure".into()),
+                _ => None,
+            };
             hook.tool_id = Some(
                 raw["tool_use_id"]
                     .as_str()

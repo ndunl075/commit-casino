@@ -1,10 +1,10 @@
 /** Fixture support is deliberately distinct from a claim of live compatibility. */
 export const testedClaudeVersions: readonly string[] = ['2.1.287'];
-export const claudeIntegrationStatus = { passive: true, liveWageringEnabled: false, reason: 'Windows session start/end transport verified on 2.1.287; full turn, attention, attribution and settlement acceptance checks required' } as const;
+export const claudeIntegrationStatus = { passive: true, wageringAuthority: 'native-evidence-gate', reason: 'Windows Claude2.1.287 real turn/tool/permission hooks verified with a local mock API; native evidence, attribution and settlement gate determines wagering availability' } as const;
 export type ToolEffect = 'read' | 'possible-mutation' | 'other';
 export type Observation =
   | { type: 'session-start' | 'session-end' | 'turn-start' | 'stop-candidate'; payload: Record<string, never> }
-  | { type: 'tool-start' | 'tool-end'; payload: { toolId: string; effect: ToolEffect } }
+  | { type: 'tool-start' | 'tool-end'; payload: { toolId: string; effect: ToolEffect; status?: 'success' | 'failure' } }
   | { type: 'attention-requested'; payload: { reason: 'permission' | 'idle' } };
 export type EventEnvelope = Observation & { version: 1; eventId: string; installationId: string; provider: 'claude'; sessionId: string; turnId?: string; sourceSequence: number; observedAt: string };
 export interface NormalizationContext {
@@ -42,7 +42,7 @@ export function normalizeClaudeHook(raw: unknown, c: NormalizationContext): Norm
     case 'Stop': observation = { type: 'stop-candidate', payload: {} }; break;
     case 'PreToolUse': case 'PostToolUse': case 'PostToolUseFailure':
       if (!opaque(raw.tool_use_id)) return { ok: false, reason: 'INVALID_INPUT' };
-      observation = { type: raw.hook_event_name === 'PreToolUse' ? 'tool-start' : 'tool-end', payload: { toolId: raw.tool_use_id, effect: toolEffect(raw.tool_name) } }; break;
+      observation = { type: raw.hook_event_name === 'PreToolUse' ? 'tool-start' : 'tool-end', payload: { toolId: raw.tool_use_id, effect: toolEffect(raw.tool_name), ...(raw.hook_event_name === 'PreToolUse' ? {} : { status: raw.hook_event_name === 'PostToolUse' ? 'success' as const : 'failure' as const }) } }; break;
     case 'PermissionRequest': observation = { type: 'attention-requested', payload: { reason: 'permission' } }; break;
     case 'Notification':
       if (raw.notification_type !== 'permission_prompt' && raw.notification_type !== 'idle_prompt') return { ok: false, reason: 'UNSUPPORTED_EVENT' };

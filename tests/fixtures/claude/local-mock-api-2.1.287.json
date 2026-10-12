@@ -1,0 +1,34 @@
+{
+  "providerVersion":"2.1.287",
+  "platform":"Windows x86_64",
+  "verifiedAt":"2026-10-12",
+  "provenance":"Actual installed Claude CLI lifecycle using --print, isolated configuration and private synthetic fixture, with ANTHROPIC_BASE_URL pointing exclusively to a local mock HTTP API. All model responses were mocked. No external inference, user source/configuration, permissions bypass, or approval decision from the helper. Proxy rejected any external target; observed external proxy attempts zero. Helper path contained spaces and non-ASCII characters.",
+  "cases":[
+    {"name":"read-success","providerExitCode":0,"localMockRequests":2,"events":[
+      {"sequence":1,"type":"session-start"},
+      {"sequence":2,"type":"turn-start"},
+      {"sequence":3,"type":"tool-start","effect":"read"},
+      {"sequence":4,"type":"tool-end","effect":"read","toolStatus":"success"},
+      {"sequence":5,"type":"stop-candidate"},
+      {"sequence":6,"type":"session-end"}
+    ]},
+    {"name":"read-missing-private-fixture","providerExitCode":0,"localMockRequests":2,"events":[
+      {"sequence":1,"type":"session-start"},
+      {"sequence":2,"type":"turn-start"},
+      {"sequence":3,"type":"tool-start","effect":"read"},
+      {"sequence":4,"type":"tool-end","effect":"read","toolStatus":"failure"},
+      {"sequence":5,"type":"stop-candidate"},
+      {"sequence":6,"type":"session-end"}
+    ]},
+    {"name":"restrictive-permission-request","providerExitCode":0,"localMockRequests":2,"events":[
+      {"sequence":1,"type":"session-start"},
+      {"sequence":2,"type":"turn-start"},
+      {"sequence":3,"type":"tool-start","effect":"possible-mutation"},
+      {"sequence":4,"type":"attention-requested"},
+      {"sequence":5,"type":"stop-candidate"},
+      {"sequence":6,"type":"session-end"}
+    ],"limitation":"CLI default denied the requested write under the isolated ask policy, emitted no tool-end. Native evidence conservatively refunds Unknown when this tool remains unaccounted at terminal; no completion is invented."}
+  ],
+  "checks":{"hmacValidated":true,"contiguousSequences":true,"metadataAllowlistOnly":true,"pendingHookTickets":0,"externalProxyAttempts":0,"consecutiveCompleteHarnessRunsAfterSyncOptimization":3},
+  "remainingLiveLimitations":["Notification idle/permission prompt timing", "interactive permission resume", "stop continuation", "subagent provenance", "multi-turn launch-link and financial attribution beyond explicit harness scenarios"]
+}

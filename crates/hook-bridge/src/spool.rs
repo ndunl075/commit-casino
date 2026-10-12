@@ -408,7 +408,18 @@ pub fn authenticate(
 }
 /** Caller holds this same lock when arming; never infer eligibility from the UI snapshot. */
 pub fn enqueue(root: &Path, hook: SanitizedHook, link: Option<&str>) -> BridgeResult<Envelope> {
-    enqueue_hook(root, hook, link, None)
+    let ticket = begin_hook(root)?;
+    let result = enqueue_hook(root, hook, link, Some(&ticket));
+    match result {
+        Ok(event) => {
+            complete_hook(root, &ticket)?;
+            Ok(event)
+        }
+        Err(error) => {
+            note_gap(root);
+            Err(error)
+        }
+    }
 }
 pub fn enqueue_hook(
     root: &Path,
@@ -416,6 +427,10 @@ pub fn enqueue_hook(
     link: Option<&str>,
     ticket: Option<&str>,
 ) -> BridgeResult<Envelope> {
+    let ticket_id = ticket
+        .filter(|s| opaque(s))
+        .ok_or_else(|| invalid("DURABLE_HOOK_TICKET_REQUIRED"))?;
+    check_owned(&root.join("pending-hooks").join(format!("{ticket_id}.json")))?;
     let config = load_config(root)?;
     if config.provider_version != crate::DOCUMENTED_FIXTURE_VERSION {
         return Err(invalid("VERSION_MISMATCH"));
@@ -434,13 +449,8 @@ pub fn enqueue_hook(
         }
     }
     let prior_gap = journal.evidence_gap;
-    // Persist uncertainty before allocating sequence/publication: watchdog interruption fails closed.
-    journal.evidence_gap = true;
-    atomic_write(
-        &journal_path(root, &hook.session_id),
-        &serde_json::to_vec(&journal)?,
-    )?;
-    journal.evidence_gap = prior_gap;
+    // The already-flushed pending ticket covers every interruption here. One
+    // journal flush plus inbox publication is sufficient; avoid redundant fsyncs.
     if fs::read_dir(root.join("inbox"))?
         .take(MAX_PENDING + 1)
         .count()
@@ -540,8 +550,6 @@ pub fn enqueue_hook(
         observation: hook,
         verification: None,
     };
-    let intended_gap = journal.evidence_gap;
-    journal.evidence_gap = true;
     atomic_write(
         &journal_path(root, &envelope.observation.session_id),
         &serde_json::to_vec(&journal)?,
@@ -552,11 +560,6 @@ pub fn enqueue_hook(
             .join("inbox")
             .join(format!("{}.json", envelope.event_id)),
         &bytes,
-    )?;
-    journal.evidence_gap = intended_gap;
-    atomic_write(
-        &journal_path(root, &envelope.observation.session_id),
-        &serde_json::to_vec(&journal)?,
     )?;
     Ok(envelope)
 }
@@ -606,6 +609,7 @@ pub fn publish_verification(
             tool_id: None,
             effect: None,
             attention: None,
+            tool_status: None,
         },
         verification: Some(summary.clone()),
     };
