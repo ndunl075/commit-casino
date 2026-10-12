@@ -56,6 +56,9 @@ jobs:
       - run: npm run test:native
       - run: npm run lint:native
       - run: npx playwright install chromium
+      - name: Ensure WebView2 runtime for direct executable smoke
+        shell: pwsh
+        run: ./scripts/ensure-webview2.ps1
       - run: npm run test:desktop
       - run: npm run build:web
       - run: npm run build:desktop
