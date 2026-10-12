@@ -6,7 +6,11 @@ $taskOutput = Join-Path $taskRoot "dist/release/$taskVersion"
 New-Item -ItemType Directory -Force -Path $taskOutput | Out-Null
 $taskInstaller = Join-Path $taskRoot "apps/desktop/src-tauri/target/release/bundle/nsis/Commit Casino_${taskVersion}_x64-setup.exe"
 if (-not (Test-Path -LiteralPath $taskInstaller)) { throw 'Build the Windows installer first: npm run build:desktop' }
-Copy-Item -LiteralPath $taskInstaller -Destination $taskOutput
+# GitHub normalizes spaces in uploaded asset names. Use the published name before
+# hashing, and remove only the known legacy generated filename on repeated builds.
+$taskLegacyInstaller = Join-Path $taskOutput "Commit Casino_${taskVersion}_x64-setup.exe"
+if (Test-Path -LiteralPath $taskLegacyInstaller) { Remove-Item -LiteralPath $taskLegacyInstaller }
+Copy-Item -LiteralPath $taskInstaller -Destination (Join-Path $taskOutput "Commit.Casino_${taskVersion}_x64-setup.exe")
 Copy-Item -LiteralPath (Join-Path $taskRoot 'crates/hook-bridge/target/release/commit-casino-bridge.exe') -Destination $taskOutput
 Compress-Archive -Path (Join-Path $taskRoot 'dist/web/*') -DestinationPath (Join-Path $taskOutput "commit-casino-web-$taskVersion.zip") -Force
 Compress-Archive -Path (Join-Path $taskRoot 'dist/licenses/*') -DestinationPath (Join-Path $taskOutput "commit-casino-licenses-$taskVersion.zip") -Force
