@@ -1,0 +1,9 @@
+node_modules/
+dist/
+target/
+.worktrees/
+test-results/
+playwright-report/
+*.log
+.cache/
+.toolchain/

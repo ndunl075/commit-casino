@@ -1,0 +1,1700 @@
+{
+  "version": "european-v1",
+  "wheelOrder": [
+    0,
+    32,
+    15,
+    19,
+    4,
+    21,
+    2,
+    25,
+    17,
+    34,
+    6,
+    27,
+    13,
+    36,
+    11,
+    30,
+    8,
+    23,
+    10,
+    5,
+    24,
+    16,
+    33,
+    1,
+    20,
+    14,
+    31,
+    9,
+    22,
+    18,
+    29,
+    7,
+    28,
+    12,
+    35,
+    3,
+    26
+  ],
+  "redNumbers": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    12,
+    14,
+    16,
+    18,
+    19,
+    21,
+    23,
+    25,
+    27,
+    30,
+    32,
+    34,
+    36
+  ],
+  "bets": [
+    {
+      "id": "straight:0",
+      "kind": "straight",
+      "numbers": [
+        0
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:1",
+      "kind": "straight",
+      "numbers": [
+        1
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:2",
+      "kind": "straight",
+      "numbers": [
+        2
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:3",
+      "kind": "straight",
+      "numbers": [
+        3
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:4",
+      "kind": "straight",
+      "numbers": [
+        4
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:5",
+      "kind": "straight",
+      "numbers": [
+        5
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:6",
+      "kind": "straight",
+      "numbers": [
+        6
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:7",
+      "kind": "straight",
+      "numbers": [
+        7
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:8",
+      "kind": "straight",
+      "numbers": [
+        8
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:9",
+      "kind": "straight",
+      "numbers": [
+        9
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:10",
+      "kind": "straight",
+      "numbers": [
+        10
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:11",
+      "kind": "straight",
+      "numbers": [
+        11
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:12",
+      "kind": "straight",
+      "numbers": [
+        12
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:13",
+      "kind": "straight",
+      "numbers": [
+        13
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:14",
+      "kind": "straight",
+      "numbers": [
+        14
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:15",
+      "kind": "straight",
+      "numbers": [
+        15
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:16",
+      "kind": "straight",
+      "numbers": [
+        16
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:17",
+      "kind": "straight",
+      "numbers": [
+        17
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:18",
+      "kind": "straight",
+      "numbers": [
+        18
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:19",
+      "kind": "straight",
+      "numbers": [
+        19
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:20",
+      "kind": "straight",
+      "numbers": [
+        20
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:21",
+      "kind": "straight",
+      "numbers": [
+        21
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:22",
+      "kind": "straight",
+      "numbers": [
+        22
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:23",
+      "kind": "straight",
+      "numbers": [
+        23
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:24",
+      "kind": "straight",
+      "numbers": [
+        24
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:25",
+      "kind": "straight",
+      "numbers": [
+        25
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:26",
+      "kind": "straight",
+      "numbers": [
+        26
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:27",
+      "kind": "straight",
+      "numbers": [
+        27
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:28",
+      "kind": "straight",
+      "numbers": [
+        28
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:29",
+      "kind": "straight",
+      "numbers": [
+        29
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:30",
+      "kind": "straight",
+      "numbers": [
+        30
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:31",
+      "kind": "straight",
+      "numbers": [
+        31
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:32",
+      "kind": "straight",
+      "numbers": [
+        32
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:33",
+      "kind": "straight",
+      "numbers": [
+        33
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:34",
+      "kind": "straight",
+      "numbers": [
+        34
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:35",
+      "kind": "straight",
+      "numbers": [
+        35
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "straight:36",
+      "kind": "straight",
+      "numbers": [
+        36
+      ],
+      "profitOdds": 35
+    },
+    {
+      "id": "split:1-2",
+      "kind": "split",
+      "numbers": [
+        1,
+        2
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:1-4",
+      "kind": "split",
+      "numbers": [
+        1,
+        4
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:2-3",
+      "kind": "split",
+      "numbers": [
+        2,
+        3
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:2-5",
+      "kind": "split",
+      "numbers": [
+        2,
+        5
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:3-6",
+      "kind": "split",
+      "numbers": [
+        3,
+        6
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:4-5",
+      "kind": "split",
+      "numbers": [
+        4,
+        5
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:4-7",
+      "kind": "split",
+      "numbers": [
+        4,
+        7
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:5-6",
+      "kind": "split",
+      "numbers": [
+        5,
+        6
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:5-8",
+      "kind": "split",
+      "numbers": [
+        5,
+        8
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:6-9",
+      "kind": "split",
+      "numbers": [
+        6,
+        9
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:7-8",
+      "kind": "split",
+      "numbers": [
+        7,
+        8
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:7-10",
+      "kind": "split",
+      "numbers": [
+        7,
+        10
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:8-9",
+      "kind": "split",
+      "numbers": [
+        8,
+        9
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:8-11",
+      "kind": "split",
+      "numbers": [
+        8,
+        11
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:9-12",
+      "kind": "split",
+      "numbers": [
+        9,
+        12
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:10-11",
+      "kind": "split",
+      "numbers": [
+        10,
+        11
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:10-13",
+      "kind": "split",
+      "numbers": [
+        10,
+        13
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:11-12",
+      "kind": "split",
+      "numbers": [
+        11,
+        12
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:11-14",
+      "kind": "split",
+      "numbers": [
+        11,
+        14
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:12-15",
+      "kind": "split",
+      "numbers": [
+        12,
+        15
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:13-14",
+      "kind": "split",
+      "numbers": [
+        13,
+        14
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:13-16",
+      "kind": "split",
+      "numbers": [
+        13,
+        16
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:14-15",
+      "kind": "split",
+      "numbers": [
+        14,
+        15
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:14-17",
+      "kind": "split",
+      "numbers": [
+        14,
+        17
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:15-18",
+      "kind": "split",
+      "numbers": [
+        15,
+        18
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:16-17",
+      "kind": "split",
+      "numbers": [
+        16,
+        17
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:16-19",
+      "kind": "split",
+      "numbers": [
+        16,
+        19
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:17-18",
+      "kind": "split",
+      "numbers": [
+        17,
+        18
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:17-20",
+      "kind": "split",
+      "numbers": [
+        17,
+        20
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:18-21",
+      "kind": "split",
+      "numbers": [
+        18,
+        21
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:19-20",
+      "kind": "split",
+      "numbers": [
+        19,
+        20
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:19-22",
+      "kind": "split",
+      "numbers": [
+        19,
+        22
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:20-21",
+      "kind": "split",
+      "numbers": [
+        20,
+        21
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:20-23",
+      "kind": "split",
+      "numbers": [
+        20,
+        23
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:21-24",
+      "kind": "split",
+      "numbers": [
+        21,
+        24
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:22-23",
+      "kind": "split",
+      "numbers": [
+        22,
+        23
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:22-25",
+      "kind": "split",
+      "numbers": [
+        22,
+        25
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:23-24",
+      "kind": "split",
+      "numbers": [
+        23,
+        24
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:23-26",
+      "kind": "split",
+      "numbers": [
+        23,
+        26
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:24-27",
+      "kind": "split",
+      "numbers": [
+        24,
+        27
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:25-26",
+      "kind": "split",
+      "numbers": [
+        25,
+        26
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:25-28",
+      "kind": "split",
+      "numbers": [
+        25,
+        28
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:26-27",
+      "kind": "split",
+      "numbers": [
+        26,
+        27
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:26-29",
+      "kind": "split",
+      "numbers": [
+        26,
+        29
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:27-30",
+      "kind": "split",
+      "numbers": [
+        27,
+        30
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:28-29",
+      "kind": "split",
+      "numbers": [
+        28,
+        29
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:28-31",
+      "kind": "split",
+      "numbers": [
+        28,
+        31
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:29-30",
+      "kind": "split",
+      "numbers": [
+        29,
+        30
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:29-32",
+      "kind": "split",
+      "numbers": [
+        29,
+        32
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:30-33",
+      "kind": "split",
+      "numbers": [
+        30,
+        33
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:31-32",
+      "kind": "split",
+      "numbers": [
+        31,
+        32
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:31-34",
+      "kind": "split",
+      "numbers": [
+        31,
+        34
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:32-33",
+      "kind": "split",
+      "numbers": [
+        32,
+        33
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:32-35",
+      "kind": "split",
+      "numbers": [
+        32,
+        35
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:33-36",
+      "kind": "split",
+      "numbers": [
+        33,
+        36
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:34-35",
+      "kind": "split",
+      "numbers": [
+        34,
+        35
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:35-36",
+      "kind": "split",
+      "numbers": [
+        35,
+        36
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:0-1",
+      "kind": "split",
+      "numbers": [
+        0,
+        1
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:0-2",
+      "kind": "split",
+      "numbers": [
+        0,
+        2
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "split:0-3",
+      "kind": "split",
+      "numbers": [
+        0,
+        3
+      ],
+      "profitOdds": 17
+    },
+    {
+      "id": "street:1-2-3",
+      "kind": "street",
+      "numbers": [
+        1,
+        2,
+        3
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:4-5-6",
+      "kind": "street",
+      "numbers": [
+        4,
+        5,
+        6
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:7-8-9",
+      "kind": "street",
+      "numbers": [
+        7,
+        8,
+        9
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:10-11-12",
+      "kind": "street",
+      "numbers": [
+        10,
+        11,
+        12
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:13-14-15",
+      "kind": "street",
+      "numbers": [
+        13,
+        14,
+        15
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:16-17-18",
+      "kind": "street",
+      "numbers": [
+        16,
+        17,
+        18
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:19-20-21",
+      "kind": "street",
+      "numbers": [
+        19,
+        20,
+        21
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:22-23-24",
+      "kind": "street",
+      "numbers": [
+        22,
+        23,
+        24
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:25-26-27",
+      "kind": "street",
+      "numbers": [
+        25,
+        26,
+        27
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:28-29-30",
+      "kind": "street",
+      "numbers": [
+        28,
+        29,
+        30
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:31-32-33",
+      "kind": "street",
+      "numbers": [
+        31,
+        32,
+        33
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "street:34-35-36",
+      "kind": "street",
+      "numbers": [
+        34,
+        35,
+        36
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "trio:0-1-2",
+      "kind": "trio",
+      "numbers": [
+        0,
+        1,
+        2
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "trio:0-2-3",
+      "kind": "trio",
+      "numbers": [
+        0,
+        2,
+        3
+      ],
+      "profitOdds": 11
+    },
+    {
+      "id": "corner:1-2-4-5",
+      "kind": "corner",
+      "numbers": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:2-3-5-6",
+      "kind": "corner",
+      "numbers": [
+        2,
+        3,
+        5,
+        6
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:4-5-7-8",
+      "kind": "corner",
+      "numbers": [
+        4,
+        5,
+        7,
+        8
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:5-6-8-9",
+      "kind": "corner",
+      "numbers": [
+        5,
+        6,
+        8,
+        9
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:7-8-10-11",
+      "kind": "corner",
+      "numbers": [
+        7,
+        8,
+        10,
+        11
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:8-9-11-12",
+      "kind": "corner",
+      "numbers": [
+        8,
+        9,
+        11,
+        12
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:10-11-13-14",
+      "kind": "corner",
+      "numbers": [
+        10,
+        11,
+        13,
+        14
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:11-12-14-15",
+      "kind": "corner",
+      "numbers": [
+        11,
+        12,
+        14,
+        15
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:13-14-16-17",
+      "kind": "corner",
+      "numbers": [
+        13,
+        14,
+        16,
+        17
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:14-15-17-18",
+      "kind": "corner",
+      "numbers": [
+        14,
+        15,
+        17,
+        18
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:16-17-19-20",
+      "kind": "corner",
+      "numbers": [
+        16,
+        17,
+        19,
+        20
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:17-18-20-21",
+      "kind": "corner",
+      "numbers": [
+        17,
+        18,
+        20,
+        21
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:19-20-22-23",
+      "kind": "corner",
+      "numbers": [
+        19,
+        20,
+        22,
+        23
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:20-21-23-24",
+      "kind": "corner",
+      "numbers": [
+        20,
+        21,
+        23,
+        24
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:22-23-25-26",
+      "kind": "corner",
+      "numbers": [
+        22,
+        23,
+        25,
+        26
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:23-24-26-27",
+      "kind": "corner",
+      "numbers": [
+        23,
+        24,
+        26,
+        27
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:25-26-28-29",
+      "kind": "corner",
+      "numbers": [
+        25,
+        26,
+        28,
+        29
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:26-27-29-30",
+      "kind": "corner",
+      "numbers": [
+        26,
+        27,
+        29,
+        30
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:28-29-31-32",
+      "kind": "corner",
+      "numbers": [
+        28,
+        29,
+        31,
+        32
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:29-30-32-33",
+      "kind": "corner",
+      "numbers": [
+        29,
+        30,
+        32,
+        33
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:31-32-34-35",
+      "kind": "corner",
+      "numbers": [
+        31,
+        32,
+        34,
+        35
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "corner:32-33-35-36",
+      "kind": "corner",
+      "numbers": [
+        32,
+        33,
+        35,
+        36
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "first-four:0-1-2-3",
+      "kind": "first-four",
+      "numbers": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "profitOdds": 8
+    },
+    {
+      "id": "six-line:1-2-3-4-5-6",
+      "kind": "six-line",
+      "numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:4-5-6-7-8-9",
+      "kind": "six-line",
+      "numbers": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:7-8-9-10-11-12",
+      "kind": "six-line",
+      "numbers": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:10-11-12-13-14-15",
+      "kind": "six-line",
+      "numbers": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:13-14-15-16-17-18",
+      "kind": "six-line",
+      "numbers": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:16-17-18-19-20-21",
+      "kind": "six-line",
+      "numbers": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:19-20-21-22-23-24",
+      "kind": "six-line",
+      "numbers": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:22-23-24-25-26-27",
+      "kind": "six-line",
+      "numbers": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:25-26-27-28-29-30",
+      "kind": "six-line",
+      "numbers": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:28-29-30-31-32-33",
+      "kind": "six-line",
+      "numbers": [
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "six-line:31-32-33-34-35-36",
+      "kind": "six-line",
+      "numbers": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "profitOdds": 5
+    },
+    {
+      "id": "dozen:1",
+      "kind": "dozen",
+      "numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "profitOdds": 2
+    },
+    {
+      "id": "dozen:2",
+      "kind": "dozen",
+      "numbers": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "profitOdds": 2
+    },
+    {
+      "id": "dozen:3",
+      "kind": "dozen",
+      "numbers": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "profitOdds": 2
+    },
+    {
+      "id": "column:1",
+      "kind": "column",
+      "numbers": [
+        1,
+        4,
+        7,
+        10,
+        13,
+        16,
+        19,
+        22,
+        25,
+        28,
+        31,
+        34
+      ],
+      "profitOdds": 2
+    },
+    {
+      "id": "column:2",
+      "kind": "column",
+      "numbers": [
+        2,
+        5,
+        8,
+        11,
+        14,
+        17,
+        20,
+        23,
+        26,
+        29,
+        32,
+        35
+      ],
+      "profitOdds": 2
+    },
+    {
+      "id": "column:3",
+      "kind": "column",
+      "numbers": [
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36
+      ],
+      "profitOdds": 2
+    },
+    {
+      "id": "outside:red",
+      "kind": "outside",
+      "numbers": [
+        1,
+        3,
+        5,
+        7,
+        9,
+        12,
+        14,
+        16,
+        18,
+        19,
+        21,
+        23,
+        25,
+        27,
+        30,
+        32,
+        34,
+        36
+      ],
+      "profitOdds": 1
+    },
+    {
+      "id": "outside:black",
+      "kind": "outside",
+      "numbers": [
+        2,
+        4,
+        6,
+        8,
+        10,
+        11,
+        13,
+        15,
+        17,
+        20,
+        22,
+        24,
+        26,
+        28,
+        29,
+        31,
+        33,
+        35
+      ],
+      "profitOdds": 1
+    },
+    {
+      "id": "outside:odd",
+      "kind": "outside",
+      "numbers": [
+        1,
+        3,
+        5,
+        7,
+        9,
+        11,
+        13,
+        15,
+        17,
+        19,
+        21,
+        23,
+        25,
+        27,
+        29,
+        31,
+        33,
+        35
+      ],
+      "profitOdds": 1
+    },
+    {
+      "id": "outside:even",
+      "kind": "outside",
+      "numbers": [
+        2,
+        4,
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20,
+        22,
+        24,
+        26,
+        28,
+        30,
+        32,
+        34,
+        36
+      ],
+      "profitOdds": 1
+    },
+    {
+      "id": "outside:low",
+      "kind": "outside",
+      "numbers": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "profitOdds": 1
+    },
+    {
+      "id": "outside:high",
+      "kind": "outside",
+      "numbers": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "profitOdds": 1
+    }
+  ]
+}
