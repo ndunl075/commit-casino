@@ -1,0 +1,1 @@
+{"main":{"identifier":"main","description":"Only local game IPC and snapshot events. No filesystem, shell, HTTP, or SQL access.","local":true,"windows":["main"],"permissions":["core:event:allow-listen","core:event:allow-unlisten"]}}
