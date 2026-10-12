@@ -582,9 +582,6 @@ impl Casino {
         let encoded: String =
             tx.query_row("SELECT json FROM rounds WHERE id=?1", [id], |r| r.get(0))?;
         let mut round: Round = serde_json::from_str(&encoded)?;
-        if round.status != "settled" {
-            return Err(Error::new("ROUND_ACTIVE", "Round is still settling."));
-        }
         if round.presentation.presentation_state == "shown" {
             return Ok(());
         }
@@ -803,7 +800,7 @@ fn snapshot_db(db: &Connection) -> Result<Value> {
         .collect::<std::result::Result<_, _>>()?;
     let active = rounds
         .iter()
-        .find(|r| r.presentation.presentation_state == "pending");
+        .find(|r| r.status == "committed" || r.presentation.presentation_state == "pending");
     let settings: String =
         db.query_row("SELECT json FROM settings WHERE id=1", [], |r| r.get(0))?;
     let stats: String = db.query_row("SELECT stats FROM app_state WHERE id=1", [], |r| r.get(0))?;
