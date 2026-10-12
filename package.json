@@ -1,17 +1,47 @@
 {
-  "name": "commit-casino", "version": "0.1.0", "private": true, "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
-  "engines": {"node": ">=22.12.0"},
+  "name": "commit-casino",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev:web": "vite --config apps/web/vite.config.ts --host 127.0.0.1",
     "dev:desktop": "npm run dev --workspace @commit-casino/desktop",
-    "typecheck": "tsc --noEmit", "lint": "eslint .", "test": "vitest run",
-    "test:contracts": "vitest run tests/contracts", "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint packages apps tests scripts *.ts *.js",
+    "test": "vitest run",
+    "test:contracts": "vitest run tests/contracts",
+    "test:e2e": "playwright test",
     "test:native": "cargo test --manifest-path crates/casino-core/Cargo.toml && cargo test --manifest-path crates/hook-bridge/Cargo.toml",
     "build:web": "vite build --config apps/web/vite.config.ts",
     "build:desktop": "npm run build --workspace @commit-casino/desktop",
     "generate:catalog": "node scripts/generate-catalog.mjs"
   },
-  "dependencies": {"react":"19.3.0","react-dom":"19.3.0","pixi.js":"8.22.0","zustand":"5.0.15","zod":"4.6.6"},
-  "devDependencies": {"typescript":"6.0.3","vite":"8.3.4","@vitejs/plugin-react":"6.1.2","vitest":"5.0.3","fast-check":"4.10.2","fake-indexeddb":"6.2.5","@playwright/test":"1.64.0","@types/react":"^19.2.0","@types/react-dom":"^19.2.0","@types/node":"^22.0.0","eslint":"^9.39.0","typescript-eslint":"^8.46.0"}
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "pixi.js": "8.22.0",
+    "zustand": "5.0.15",
+    "zod": "4.6.6"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vite": "8.3.4",
+    "@vitejs/plugin-react": "6.1.2",
+    "vitest": "5.0.3",
+    "fast-check": "4.10.2",
+    "fake-indexeddb": "6.2.5",
+    "@playwright/test": "1.64.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.39.0",
+    "typescript-eslint": "^8.46.0"
+  }
 }
