@@ -201,14 +201,14 @@ pub fn classify_turn(e: &TurnEvidence) -> Classification {
     // Keep observed insertion order for explanation parity with the TS implementation.
     let mut builds = BTreeSet::new();
     for run in &e.runs {
-        if run.kind == CheckKind::Build && builds.insert(run.suite_id.as_str()) {
-            if observed
+        if run.kind == CheckKind::Build
+            && builds.insert(run.suite_id.as_str())
+            && observed
                 .get(&(CheckKind::Build, run.suite_id.as_str()))
                 .and_then(|v| v.last())
                 .is_some_and(|r| r.exit_code != 0)
-            {
-                return result(Category::BrokenBuild, "Final registered build failed");
-            }
+        {
+            return result(Category::BrokenBuild, "Final registered build failed");
         }
     }
     if e.required_suite_ids.is_empty() || finals.len() != configured.len() {
@@ -240,7 +240,7 @@ pub fn settle_prediction(
 ) -> Result<Settlement, &'static str> {
     if prediction == Category::Unknown
         || stake == 0
-        || stake % 10 != 0
+        || !stake.is_multiple_of(10)
         || stake > MAX_SAFE_INTEGER / 2
     {
         return Err("INVALID_AGENT_STAKE");
