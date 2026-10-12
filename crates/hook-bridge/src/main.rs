@@ -244,6 +244,12 @@ fn run(args: &[String]) -> BridgeResult<i32> {
                 serde_json::from_slice(&fs::read(root.join("claude-executable.json"))?)?;
             launch_claude(&root, &executable, &args[1..])
         }
+        "verify-session" => {
+            if args.len() != 3 {
+                return Err(invalid("SESSION_AND_SUITE_REQUIRED"));
+            }
+            verifier::verify_session(&root, &args[1], &args[2])
+        }
         "verify" => {
             let suite_id = args
                 .get(1)
@@ -264,7 +270,7 @@ fn run(args: &[String]) -> BridgeResult<i32> {
             verifier::verified_run(&root, &suite, &session, &link)
         }
         _ => {
-            println!("Commit Casino passive bridge: init VERSION | preview | install ABSOLUTE_SETTINGS_PATH | disconnect MANIFEST | launch-claude [args] | verify REGISTERED_SUITE SESSION");
+            println!("Commit Casino passive bridge: init VERSION | preview | install ABSOLUTE_SETTINGS_PATH | disconnect MANIFEST | launch-claude [args] | verify REGISTERED_SUITE | verify-session SESSION_ID SUITE_ID");
             Ok(0)
         }
     }

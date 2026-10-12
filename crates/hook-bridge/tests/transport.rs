@@ -226,6 +226,70 @@ fn live_heartbeat_suppression_and_cooldown_skip_duplicate_launches() {
     assert!(spool::should_auto_launch(&root, "other").unwrap());
     assert!(!spool::should_auto_launch(&root, "another").unwrap());
 }
+#[test]
+fn fresh_session_retires_dead_ticket_after_durable_gap_and_keeps_active_ticket() {
+    let (_temp, root) = setup();
+    spool::enqueue(&root, hook("SessionStart"), None).unwrap();
+    let abandoned = spool::begin_hook(&root).unwrap();
+    let abandoned_path = root.join("pending-hooks").join(format!("{abandoned}.json"));
+    spool::atomic_write(&abandoned_path, b"0").unwrap();
+    let mut fresh = hook("SessionStart");
+    fresh.session_id = "fresh-session".into();
+    spool::enqueue(&root, fresh.clone(), None).unwrap();
+    assert!(!abandoned_path.exists());
+    let recovered = spool::load_journal(&root, "fresh-session").unwrap();
+    assert!(!recovered.evidence_gap);
+    assert!(recovered.gap_epoch > 0);
+    assert!(spool::load_journal(&root, "session").unwrap().evidence_gap);
+    // Ending and resuming the old identifier cannot heal the old coverage gap.
+    spool::enqueue(&root, hook("SessionEnd"), None).unwrap();
+    spool::enqueue(&root, hook("SessionStart"), None).unwrap();
+    assert!(spool::load_journal(&root, "session").unwrap().evidence_gap);
+
+    let active = spool::begin_hook(&root).unwrap();
+    fresh.session_id = "active-race-session".into();
+    spool::enqueue(&root, fresh, None).unwrap();
+    assert!(root
+        .join("pending-hooks")
+        .join(format!("{active}.json"))
+        .exists());
+    assert!(
+        spool::load_journal(&root, "active-race-session")
+            .unwrap()
+            .evidence_gap
+    );
+    spool::complete_hook(&root, &active).unwrap();
+    assert!(
+        spool::load_journal(&root, "active-race-session")
+            .unwrap()
+            .evidence_gap
+    );
+}
+#[test]
+fn recovery_cannot_remove_ticket_when_drop_epoch_cannot_be_flushed() {
+    let (_temp, root) = setup();
+    let abandoned = spool::begin_hook(&root).unwrap();
+    let path = root.join("pending-hooks").join(format!("{abandoned}.json"));
+    spool::atomic_write(&path, b"0").unwrap();
+    // A malformed/unwritable checkpoint must leave the uncertainty marker intact.
+    spool::private_dir(&root.join("evidence-gap.json")).unwrap();
+    assert!(spool::enqueue(&root, hook("SessionStart"), None).is_err());
+    assert!(path.exists());
+}
+#[test]
+fn drop_epochs_advance_even_when_clock_moves_backwards() {
+    let (_temp, root) = setup();
+    let future = spool::now_ms() + 100_000;
+    spool::atomic_write(
+        &root.join("evidence-gap.json"),
+        &serde_json::to_vec(&future).unwrap(),
+    )
+    .unwrap();
+    spool::note_gap(&root);
+    let epoch: u64 =
+        serde_json::from_slice(&fs::read(root.join("evidence-gap.json")).unwrap()).unwrap();
+    assert_eq!(epoch, future + 1);
+}
 #[cfg(windows)]
 #[test]
 fn watchdog_before_stdin_eof_leaves_durable_uncertainty() {

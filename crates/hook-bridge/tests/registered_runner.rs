@@ -41,7 +41,7 @@ fn actual_runner(runner: &str, cli: PathBuf, version: &str) {
         .prefix("space 空格-")
         .tempdir_in(fixtures)
         .unwrap();
-    let root = private.path().join("integration");
+    let root = private.path().join("CommitCasino").join("integration");
     installer::initialize(&root, commit_casino_bridge::DOCUMENTED_FIXTURE_VERSION).unwrap();
     let link = "explicit-test-launch";
     spool::atomic_write(
@@ -100,6 +100,11 @@ fn actual_runner(runner: &str, cli: PathBuf, version: &str) {
         version_args: vec![cli.to_string_lossy().to_string(), "--version".into()],
         working_directory: runner_dir,
     };
+    spool::atomic_write(
+        &root.join("suites").join("explicit-suite.json"),
+        &serde_json::to_vec(&suite).unwrap(),
+    )
+    .unwrap();
     enqueue(&root, "SessionStart", serde_json::json!({}), link);
     for (index, should_pass) in [true, false].into_iter().enumerate() {
         let test_source=format!("import {{ test, expect }} from '{module}'; test('private assertion label', () => {{ expect(2+2).toBe({}); }});",if should_pass{4}else{5});
@@ -116,11 +121,9 @@ fn actual_runner(runner: &str, cli: PathBuf, version: &str) {
             serde_json::json!({"tool_use_id":format!("shell-{index}"),"tool_name":"Bash"}),
             link,
         );
-        let code = verifier::verified_run(&root, &suite, "simulated-runner-session", link).unwrap();
-        assert_eq!(
-            code,
-            if should_pass { 0 } else { 1 },
-            "actual child exit must survive report handling"
+        assert!(
+            verifier::verify_session(&root, "simulated-runner-session", "explicit-suite").is_err(),
+            "dedicated verification rejects an enclosing active shell"
         );
         enqueue(
             &root,
@@ -129,6 +132,21 @@ fn actual_runner(runner: &str, cli: PathBuf, version: &str) {
             link,
         );
         enqueue(&root, "Stop", serde_json::json!({}), link);
+        let status = std::process::Command::new(env!("CARGO_BIN_EXE_commit-casino-bridge"))
+            .args([
+                "verify-session",
+                "simulated-runner-session",
+                "explicit-suite",
+            ])
+            .env("LOCALAPPDATA", private.path())
+            .env_remove("COMMIT_CASINO_LINK")
+            .status()
+            .unwrap();
+        assert_eq!(
+            status.code(),
+            Some(if should_pass { 0 } else { 1 }),
+            "explicit CLI resolves private session attribution and preserves child exit"
+        );
     }
     enqueue(&root, "SessionEnd", serde_json::json!({}), link);
     let events = spool::scan_inbox(&root, "simulated-runner-session", 0).unwrap();
