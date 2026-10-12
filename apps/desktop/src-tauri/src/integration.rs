@@ -18,7 +18,7 @@ fn error(message: impl Into<String>) -> Error {
     }
 }
 fn bridge<T>(result: commit_casino_bridge::BridgeResult<T>) -> Result<T> {
-    result.map_err(|e| error(format!("Passive integration unavailable: {e}")))
+    result.map_err(|_| error("Passive integration unavailable. Check setup, helper availability, and local permissions."))
 }
 pub(super) fn root() -> Result<PathBuf> {
     let base = std::env::var_os("LOCALAPPDATA")
@@ -143,7 +143,7 @@ fn status(app: &tauri::AppHandle, service: &Service) -> Result<Value> {
     let mut casino = service.lock()?;
     casino.integration_connected(connected && helper_ready)?;
     Ok(
-        json!({"available":helper_ready,"connected":connected&&helper_ready,"providerVersion":config.as_ref().map(|c|c.provider_version.as_str()),"supportedVersion":DOCUMENTED_FIXTURE_VERSION,"autoLaunch":config.as_ref().is_some_and(|c|c.auto_launch),"sessions":casino.passive_sessions()?,"message":if !helper_ready{"Bundled helper unavailable."}else if connected{"Passive local notifications connected. Agent predictions require separate verified evidence and remain disabled."}else{"Choose a project, preview the exact hooks, then connect. Gameplay works without Claude."}}),
+        json!({"available":helper_ready,"connected":connected&&helper_ready,"providerVersion":config.as_ref().map(|c|c.provider_version.as_str()),"supportedVersion":DOCUMENTED_FIXTURE_VERSION,"autoLaunch":config.as_ref().is_some_and(|c|c.auto_launch),"sessions":casino.passive_sessions()?,"message":if !helper_ready{"Bundled helper unavailable."}else if connected{"Passive local notifications connected. Agent predictions additionally require verified launcher attribution and registered required suites."}else{"Choose a project, preview the exact hooks, then connect. Gameplay works without Claude."}}),
     )
 }
 #[tauri::command]

@@ -16,7 +16,7 @@ fn error(message: impl Into<String>) -> Error {
     }
 }
 fn checked<T>(result: commit_casino_bridge::BridgeResult<T>) -> Result<T> {
-    result.map_err(|e| error(format!("Verified agent evidence unavailable: {e}")))
+    result.map_err(|_| error("Verified agent evidence unavailable. Check the integration setup and registered required suites."))
 }
 fn policy(root: &Path) -> Result<Vec<String>> {
     Ok(checked(verifier::load_required_suites(root))?
