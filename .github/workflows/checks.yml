@@ -43,6 +43,7 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
+          cache-on-failure: true
           workspaces: |
             crates/casino-core
             crates/hook-bridge
@@ -69,3 +70,10 @@ jobs:
           name: windows-installer
           path: dist/release/
 
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: native-failure-evidence
+          path: test-results/native/
+          if-no-files-found: ignore

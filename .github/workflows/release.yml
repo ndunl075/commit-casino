@@ -16,6 +16,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: |
+            crates/casino-core
+            crates/hook-bridge
+            crates/agent-core
+            apps/desktop/src-tauri
       - run: npm ci
       - run: node scripts/generate-catalog.mjs --check
       - run: node crates/agent-core/generate-fixtures.mjs --check
@@ -44,3 +52,10 @@ jobs:
           if ($env:GITHUB_REF_NAME -ne "v$taskVersion") { throw 'Tag and package version differ' }
           $taskAssets = (Get-ChildItem -LiteralPath "dist/release/$taskVersion" -File).FullName
           gh release create "$env:GITHUB_REF_NAME" @taskAssets --title "Commit Casino $taskVersion" --notes-file docs/RELEASE_NOTES.md
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: release-failure-evidence
+          path: test-results/native/
+          if-no-files-found: ignore
