@@ -97,7 +97,7 @@ pub fn preview(helper: &Path) -> BridgeResult<Vec<(String, Value)>> {
     if !helper.is_absolute() || helper.extension().and_then(|s| s.to_str()) != Some("exe") {
         return Err(invalid("ABSOLUTE_EXE_REQUIRED"));
     }
-    Ok(EVENTS.iter().map(|event| ((*event).into(), json!({"matcher":"*","hooks":[{"type":"command","command":helper,"args":["hook"],"timeout":1}]}))).collect())
+    Ok(EVENTS.iter().map(|event| ((*event).into(), json!({"matcher":if *event=="Notification" {"permission_prompt|idle_prompt"}else{"*"},"hooks":[{"type":"command","command":helper,"args":["hook"],"timeout":1}]}))).collect())
 }
 fn read_settings(path: &Path) -> BridgeResult<(Vec<u8>, Value)> {
     if !path.is_absolute() {
@@ -174,7 +174,15 @@ pub fn initialize(root: &Path, provider_version: &str) -> BridgeResult<()> {
             return Err(invalid("PRIVATE_ACL_FAILED"));
         }
     }
-    for name in ["inbox", "journals", "runs", "links", "manifests", "suites"] {
+    for name in [
+        "inbox",
+        "journals",
+        "runs",
+        "links",
+        "manifests",
+        "suites",
+        "pending-hooks",
+    ] {
         private_dir(&root.join(name))?;
     }
     let mut secret = [0u8; 32];
@@ -243,19 +251,9 @@ pub fn install(
     Ok(manifest)
 }
 fn write_settings(path: &Path, bytes: &[u8]) -> BridgeResult<()> {
-    // Scope to selected settings path, without relaxing the private spool policy.
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let parent = path.parent().ok_or_else(|| invalid("NO_PARENT"))?;
-        let prior = fs::metadata(parent)?.permissions();
-        fs::set_permissions(parent, fs::Permissions::from_mode(0o700))?;
-        let result = atomic_write(path, bytes);
-        fs::set_permissions(parent, prior)?;
-        return result;
-    }
-    #[cfg(not(unix))]
-    atomic_write(path, bytes)
+    // The selected project settings file is not an integration-private directory.
+    // Keep its permissions and reject link escapes without chmod on project paths.
+    crate::spool::atomic_settings_write(path, bytes)
 }
 pub fn disconnect(manifest_path: &Path) -> BridgeResult<Vec<String>> {
     check_owned(manifest_path)?;
