@@ -1,0 +1,13 @@
+{
+  "version": "agent-v1",
+  "classifierVersion": "agent-classifier-v1",
+  "categories": [
+    { "id": "Clean Run", "profitOdds": 1 },
+    { "id": "Comeback", "profitOdds": 1 },
+    { "id": "Broken Build", "profitOdds": 1 },
+    { "id": "Needs Help", "profitOdds": 1 }
+  ],
+  "unknown": { "selectable": false, "refundMultiplier": 1 },
+  "pendingTimeoutMs": 900000,
+  "liveWageringEnabled": false
+}
