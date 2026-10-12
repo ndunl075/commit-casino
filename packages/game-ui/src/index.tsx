@@ -8,28 +8,33 @@ import { betName, colorOf, formatChips, shortChips, type TableBet } from './geom
 import { Modal } from './Modal';
 import { RouletteTable } from './Table';
 import { Wheel } from './Wheel';
+import { IntegrationPanel, SessionBadge, type IntegrationPort, type IntegrationStatus } from './IntegrationPanel';
 import './styles.css';
+export type { IntegrationPort, IntegrationStatus, IntegrationPreview, PassiveSession } from './IntegrationPanel';
 
 export interface CasinoAppProps {
   service: CasinoService;
   temporary?: boolean;
   onTemporaryPlay?: () => void;
   onWindowMode?: (mode: 'compact' | 'standard' | 'fullscreen') => void | Promise<void>;
+  integration?: IntegrationPort;
 }
-type Panel = 'settings' | 'history' | 'stats' | 'rules' | 'picker' | 'reset' | 'clear-history' | 'rebet' | null;
+type Panel = 'settings' | 'history' | 'stats' | 'rules' | 'picker' | 'reset' | 'clear-history' | 'rebet' | 'integration' | 'welcome' | null;
 type CommitRequest = Parameters<CasinoService['commitClassic']>[0];
 const denominations = [10, 50, 100, 500, 1000];
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatChips(Math.abs(n))}`;
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'The local service could not complete this action. Please try again.';
 
-export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindowMode }: CasinoAppProps) {
+export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindowMode, integration }: CasinoAppProps) {
   const [draftStore] = useState(createDraftStore); const draft = useStore(draftStore);
   const [audio] = useState(() => new CasinoAudio());
   const [snapshot, setSnapshot] = useState<CasinoSnapshot | null>(null);
   const snapshotRef = useRef<CasinoSnapshot | null>(null);
   const [loadError, setLoadError] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
-  const [panel, setPanel] = useState<Panel>(null); const [preview, setPreview] = useState<TableBet | null>(null);
+  const [panel, setPanel] = useState<Panel>(integration ? 'welcome' : null); const [preview, setPreview] = useState<TableBet | null>(null);
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
+  const lastSessionStates = useRef(new Map<string, string>());
   const [presentation, setPresentation] = useState<CommittedRound | null>(null);
   const [result, setResult] = useState<CommittedRound | null>(null);
   const completed = useRef(new Set<string>()); const pending = useRef<CommitRequest | null>(null);
@@ -53,6 +58,22 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
   useEffect(() => { const media = window.matchMedia('(prefers-reduced-motion: reduce)'); const change = () => setSystemReducedMotion(media.matches); media.addEventListener('change', change); return () => media.removeEventListener('change', change); }, []);
   useEffect(() => () => audio.destroy(), [audio]);
   useEffect(() => { if (snapshot) audio.configure(snapshot.settings.mute, snapshot.settings.volume); }, [audio, snapshot?.settings.mute, snapshot?.settings.volume]);
+  function receiveIntegration(next: IntegrationStatus) {
+    let notify = false;
+    for (const session of next.sessions) {
+      const previous = lastSessionStates.current.get(session.sessionId);
+      if (previous && previous !== session.status && ['attention', 'stopped', 'ended'].includes(session.status) && Date.now() - session.lastEventAtMs < 5000) notify = true;
+      lastSessionStates.current.set(session.sessionId, session.status);
+    }
+    setIntegrationStatus(next);
+    if (notify && snapshotRef.current?.settings.notificationSound && !snapshotRef.current.activeRound) audio.play('notification');
+  }
+  useEffect(() => {
+    if (!integration || panel === 'integration') return;
+    let live = true;
+    const poll = () => { if (!document.hidden) void integration.status().then(next => { if (live) receiveIntegration(next); }).catch(() => undefined); };
+    poll(); const timer = window.setInterval(poll, 5000); return () => { live = false; window.clearInterval(timer); };
+  }, [integration, panel]);
   useEffect(() => {
     if (!snapshot) return;
     const unshown = snapshot.activeRound ?? snapshot.history.find(r => r.presentation.presentationState === 'pending');
@@ -71,12 +92,15 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
     if (locked || !snapshot) return;
     audio.unlock();
     if (!Number.isSafeInteger(total + draft.chip) || total + draft.chip > snapshot.wallet.balance) { setError('Not enough chips for that placement. Choose a smaller chip or undo a bet.'); return; }
+    const next = draft.bets.find(b => b.betId === id) ? draft.bets.map(b => b.betId === id ? { ...b, stake: b.stake + draft.chip } : b) : [...draft.bets, { betId: id, stake: draft.chip }];
+    try { const maximum = maxGrossReturn(next); if (!Number.isSafeInteger(snapshot.wallet.balance - total - draft.chip + maximum)) throw new Error('overflow'); } catch { setError('That bet would exceed the safe chip limit. Your draft has not changed.'); return; }
     setResult(null); setError(''); draft.place(id); audio.play('chip');
   }
   function replaceDraft(bets: readonly BetInput[]) {
     if (locked || !snapshot) return;
     const nextTotal = bets.reduce((sum, bet) => sum + bet.stake, 0);
     if (!Number.isSafeInteger(nextTotal) || bets.some(b => !Number.isSafeInteger(b.stake)) || nextTotal > snapshot.wallet.balance) { setError('That complete bet exceeds your available chips. Your draft has not changed.'); return; }
+    try { const maximum = maxGrossReturn(bets); if (!Number.isSafeInteger(snapshot.wallet.balance - nextTotal + maximum)) throw new Error('overflow'); } catch { setError('That complete bet would exceed the safe chip limit. Your draft has not changed.'); return; }
     setResult(null); setError(''); draft.replace(bets); audio.unlock(); audio.play('chip');
   }
   async function spin() {
@@ -91,7 +115,7 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
       audio.play('spin'); await refresh();
     } catch (cause) {
       const code = typeof cause === 'object' && cause !== null && 'code' in cause ? String(cause.code) : '';
-      const rejected = ['INSUFFICIENT_FUNDS', 'STALE_REVISION', 'ROUND_ACTIVE', 'INVALID_BET', 'OVERFLOW', 'RNG_UNAVAILABLE', 'VERSION_MISMATCH'].includes(code);
+      const rejected = ['INSUFFICIENT_FUNDS', 'STALE_REVISION', 'ROUND_ACTIVE', 'INVALID_BET', 'OVERFLOW', 'RNG_UNAVAILABLE', 'VERSION_MISMATCH', 'REQUEST_CONFLICT'].includes(code);
       if (rejected) pending.current = null;
       setUncertain(!rejected); setError(`${errorMessage(cause)}${!rejected ? ' Retry safely to recover the same spin request.' : ''}`);
       await refresh();
@@ -104,7 +128,7 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
     if (recent) audio.play(round.netChange > 0 ? 'win' : 'result');
     void service.acknowledgePresentation(round.roundId).then(() => service.getSnapshot()).then(accept).catch(cause => setError(errorMessage(cause)));
   }
-  async function action(run: () => Promise<CasinoSnapshot>) { setBusy(true); setError(''); try { accept(await run()); setPanel(null); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }
+  async function action(run: () => Promise<CasinoSnapshot>) { setBusy(true); setError(''); try { accept(await run()); setPanel(null); return true; } catch (cause) { setError(errorMessage(cause)); return false; } finally { setBusy(false); } }
   async function settings(patch: Parameters<CasinoService['updateSettings']>[0]) { try { accept(await service.updateSettings(patch)); } catch (cause) { setError(errorMessage(cause)); } }
 
   if (!snapshot) return <main className="casino-shell loading-screen"><div className="brand-symbol">C<span>•</span>C</div><p className="eyebrow">COMMIT CASINO</p><h1>{loadError ? 'Your saved game is unavailable.' : 'Setting your table…'}</h1>{loadError ? <><p>{loadError}</p><p>Your stored wallet has not been reset.</p><button className="primary-button" onClick={() => void refresh()}>Try again</button>{onTemporaryPlay ? <button className="text-button" onClick={onTemporaryPlay}>Play temporarily without saving</button> : null}</> : <p>Opening your local chip wallet.</p>}</main>;
@@ -112,10 +136,11 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
   return <main className={`casino-shell ${expanded ? 'expanded-table' : ''}`}>
     <header className="topbar"><a className="brand" href="#" aria-label="Commit Casino home" onClick={e => e.preventDefault()}><span className="brand-symbol">C<span>•</span>C</span><span>COMMIT<span className="brand-light"> CASINO</span></span></a>
       <div className="local-status"><span className="status-light" />{temporary ? 'TEMPORARY PLAY' : 'LOCAL PLAY'}</div>
-      <nav aria-label="Game navigation"><button onClick={() => setPanel('history')}>History</button><button onClick={() => setPanel('stats')}>Statistics</button><button className="icon-button settings-button" onClick={() => setPanel('settings')} aria-label="Settings">⚙</button></nav>
+      <nav aria-label="Game navigation">{integration ? <button onClick={() => setPanel('integration')}>Claude Code</button> : null}<button onClick={() => setPanel('history')}>History</button><button onClick={() => setPanel('stats')}>Statistics</button><button className="icon-button settings-button" onClick={() => setPanel('settings')} aria-label="Settings">⚙</button></nav>
     </header>
     <div className="room-heading"><div><p className="eyebrow">A LITTLE LUCK BETWEEN COMMITS</p><h1>European Roulette<span className="room-dot">.</span></h1></div><button className="rules-link" onClick={() => setPanel('rules')}>How to play <span aria-hidden="true">↗</span></button></div>
     {temporary ? <div className="notice">Temporary play — your chips and history disappear when this session closes.</div> : null}
+    {integrationStatus?.sessions.length ? <div className="passive-sessions" aria-live="polite" aria-atomic="true">{integrationStatus.sessions.filter(s => s.status !== 'ended').slice(0, 3).map(session => <SessionBadge key={session.sessionId} session={session}/>)}<button onClick={() => setPanel('integration')}>Session details ↗</button></div> : null}
     <section className="game-floor" aria-label="Classic Roulette">
       <aside className="wheel-panel"><div className="wheel-caption"><span>THE WHEEL</span><span>SINGLE ZERO · 37 POCKETS</span></div>
         <Wheel round={presentation ?? result} reducedMotion={reduced} onComplete={finish}/>
@@ -135,15 +160,19 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
     {error ? <div className="error-banner" role="alert"><span>{error}</span><button aria-label="Dismiss message" onClick={() => setError('')}>×</button></div> : null}
     <footer className="footer"><span>ALL THE GAME. NONE OF THE STAKES.</span><span>Free fictional chips · No purchases · No cash value</span><span className="agent-status">{snapshot.features.agentIntegration ? 'Agent integration available in desktop setup' : 'Classic mode · Agent integration unavailable'}</span></footer>
 
-    {panel ? <Modal title={{ settings: 'Make yourself comfortable', history: 'Round history', stats: 'Your time at the table', rules: 'The game, at a glance', picker: 'Find your bet', reset: 'Start a fresh wallet?', 'clear-history': 'Clear visible history?', rebet: 'Replace your draft?' }[panel]} wide={panel === 'picker' || panel === 'history'} onClose={() => setPanel(null)}>
+    {panel ? <Modal title={{ settings: 'Make yourself comfortable', history: 'Round history', stats: 'Your time at the table', rules: 'The game, at a glance', picker: 'Find your bet', reset: 'Start a fresh wallet?', 'clear-history': 'Clear visible history?', rebet: 'Replace your draft?', integration: 'Connect Claude Code', welcome: 'Welcome to Commit Casino' }[panel]} wide={panel === 'picker' || panel === 'history' || panel === 'integration'} onClose={() => setPanel(null)}>
+      {panel === 'welcome' ? <div className="welcome-panel"><span className="brand-symbol">C<span>•</span>C</span><p className="modal-intro">Your downtime deserves<br/>a good game.</p><p>Your table starts with 10,000 free fictional chips. Classic Roulette is ready whenever you are. Optionally connect Claude Code for passive session notices while your agent works.</p><div className="welcome-actions"><button className="primary-button" onClick={() => { audio.unlock(); setPanel(null); }}>Play now</button><button onClick={() => setPanel('integration')}>Connect Claude Code</button></div><small>No purchases. No cash value. Everything stays local.</small></div> : null}
+      {panel === 'integration' && integration ? <IntegrationPanel integration={integration} onStatus={receiveIntegration}/> : null}
       {panel === 'picker' ? <><p>Every table position, available by keyboard. Choose a bet to place one {formatChips(draft.chip)} chip.</p><label className="search-label">Search by number or bet type<input autoFocus type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Try 7, split, red, or dozen"/></label><div className="picker-list">{catalog.bets.filter(b => `${betName(b)} ${b.id} ${b.numbers.join(' ')}`.toLowerCase().includes(query.toLowerCase())).map(b => <button key={b.id} disabled={Boolean(locked)} onClick={() => place(b.id)}><span><strong>{betName(b)}</strong><small>{b.numbers.join(' · ')}</small></span><span>{b.profitOdds}:1 <b>＋{shortChips(draft.chip)}</b></span></button>)}</div><p className="picker-total">Current draft: {formatChips(total)} chips <button className="primary-button" onClick={() => setPanel(null)}>Back to table</button></p></> : null}
       {panel === 'rules' ? <><p className="modal-intro">A classic European table.<br/>A little room to take a chance.</p><ol className="how-to"><li><strong>Choose a chip</strong><span>Pick 10, 50, 100, 500, or 1,000. Every click adds one chip.</span></li><li><strong>Place your bets</strong><span>Bet a number, the edge between numbers, a corner, or an outside area. The small 3 and 6 rail positions cover one or two streets.</span></li><li><strong>Give it a spin</strong><span>The spin locks your bets. A winning bet returns its stake plus the listed profit.</span></li></ol><div className="odds-grid">{[['Straight', '35:1'], ['Split', '17:1'], ['Street / zero trio', '11:1'], ['Corner / first four', '8:1'], ['Six line', '5:1'], ['Dozen / column', '2:1'], ['Even-money bets', '1:1']].map(([name, odds]) => <div key={name}><span>{name}</span><strong>{odds}</strong></div>)}</div><p>Zero is green and loses on every outside bet. Each of the 37 pockets has the same chance on every spin. Past results do not predict the next result.</p><p>These are free fictional chips with no monetary value. You can refill an empty wallet or reset it in Settings.</p></> : null}
       {panel === 'settings' ? <><div className="setting-row"><div><strong>Table sounds</strong><small>Original chip and result tones</small></div><button aria-pressed={!snapshot.settings.mute} onClick={() => { audio.unlock(); void settings({ mute: !snapshot.settings.mute }); }}>{snapshot.settings.mute ? 'Muted' : 'On'}</button></div><label className="setting-row"><span>Master volume</span><input type="range" min="0" max="1" step="0.05" value={snapshot.settings.volume} onChange={e => void settings({ volume: Number(e.target.value) })}/></label><label className="setting-row"><span>Spin animation</span><select value={snapshot.settings.animationMode} onChange={e => void settings({ animationMode: e.target.value as CasinoSnapshot['settings']['animationMode'] })}><option value="normal">Normal · about 6 seconds</option><option value="fast">Fast · about 2 seconds</option><option value="reduced-motion">Reduced motion</option></select></label>{systemReducedMotion ? <p className="muted">Your system’s reduced-motion preference is active.</p> : null}<div className="setting-row"><div><strong>Agent notification sound</strong><small>{snapshot.features.agentIntegration ? 'Separate from table sounds' : 'Available with desktop agent integration'}</small></div><button disabled={!snapshot.features.agentIntegration} aria-pressed={snapshot.settings.notificationSound} onClick={() => void settings({ notificationSound: !snapshot.settings.notificationSound })}>{snapshot.settings.notificationSound ? 'On' : 'Off'}</button></div>{onWindowMode ? <label className="setting-row"><span>Window size</span><select value={snapshot.settings.windowMode} onChange={e => { const mode = e.target.value as 'compact' | 'standard' | 'fullscreen'; void Promise.resolve(onWindowMode(mode)).then(() => settings({ windowMode: mode })).catch(cause => setError(errorMessage(cause))); }}><option value="compact">Compact</option><option value="standard">Standard</option><option value="fullscreen">Fullscreen</option></select></label> : null}<div className="settings-section"><h3>Your local data</h3><p>{temporary ? 'This session is temporary and will not be saved.' : 'Your wallet, settings, and round history stay on this device.'}</p><button disabled={Boolean(locked)} onClick={() => setPanel('reset')}>Reset wallet to 10,000</button><button disabled={Boolean(locked)} onClick={() => setPanel('clear-history')}>Clear visible history</button></div></> : null}
       {panel === 'stats' ? <><p>Your Classic Roulette record. Gross returns include returned stakes; net change is returns minus all stakes.</p><div className="statistics-grid">{[['Spins', snapshot.stats.spins], ['Total staked', snapshot.stats.totalStake], ['Gross returns', snapshot.stats.grossReturns], ['Net change', signed(snapshot.stats.netChange)], ['Largest net win', snapshot.stats.largestWin], ['Longest winning streak', snapshot.stats.longestWinStreak]].map(([label, value]) => <div key={label}><span className="eyebrow">{label}</span><strong>{typeof value === 'number' ? formatChips(value) : value}</strong></div>)}</div><h3>Little milestones</h3><div className="achievements">{snapshot.achievements.length ? snapshot.achievements.map(key => <span key={key}>◇ {key.replaceAll('-', ' ').replaceAll('_', ' ')}</span>) : <p>Your first spin is the first milestone.</p>}</div></> : null}
       {panel === 'history' ? <>{snapshot.history.length ? <><div className="history-table"><table><thead><tr><th>Result</th><th>Time</th><th>Stake</th><th>Gross return</th><th>Net change</th></tr></thead><tbody>{snapshot.history.slice(historyPage * 20, historyPage * 20 + 20).map(round => <tr key={round.roundId}><td><span className={`recent-pocket pocket-${colorOf(round.outcome)}`}>{round.outcome}</span></td><td>{new Date(round.presentation.committedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td><td>{formatChips(round.stake)}</td><td>{formatChips(round.grossReturn)}</td><td className={round.netChange > 0 ? 'positive' : ''}>{signed(round.netChange)}</td></tr>)}</tbody></table></div><div className="pagination"><button disabled={historyPage === 0} onClick={() => setHistoryPage(v => v - 1)}>Previous</button><span>Page {historyPage + 1} of {Math.ceil(snapshot.history.length / 20)}</span><button disabled={(historyPage + 1) * 20 >= snapshot.history.length} onClick={() => setHistoryPage(v => v + 1)}>Next</button></div><p className="muted">Past results do not predict future spins.</p></> : <div className="empty-state"><span>◎</span><h3>A clean felt, a fresh start.</h3><p>Your settled rounds will appear here.</p></div>}</> : null}
-      {panel === 'reset' ? <><p>Your wallet will start a new chapter with 10,000 free chips. Your round history stays available.</p><div className="confirm-actions"><button onClick={() => setPanel('settings')}>Keep my wallet</button><button className="primary-button" disabled={Boolean(locked)} onClick={() => void action(() => service.resetWallet(crypto.randomUUID())).then(() => { draft.fresh(); setResult(null); })}>Reset wallet</button></div></> : null}
-      {panel === 'clear-history' ? <><p>This clears your visible rounds and statistics. Your chip balance stays the same.</p><div className="confirm-actions"><button onClick={() => setPanel('settings')}>Keep history</button><button className="primary-button" disabled={Boolean(locked)} onClick={() => void action(() => service.clearHistory(crypto.randomUUID())).then(() => { setHistoryPage(0); setResult(null); })}>Clear history</button></div></> : null}
+      {panel === 'reset' ? <><p>Your wallet will start a new chapter with 10,000 free chips. Your round history stays available.</p><div className="confirm-actions"><button onClick={() => setPanel('settings')}>Keep my wallet</button><button className="primary-button" disabled={Boolean(locked)} onClick={() => void action(() => service.resetWallet(crypto.randomUUID())).then(success => { if (success) { draft.fresh(); setResult(null); } })}>Reset wallet</button></div></> : null}
+      {panel === 'clear-history' ? <><p>This clears your visible rounds and statistics. Your chip balance stays the same.</p><div className="confirm-actions"><button onClick={() => setPanel('settings')}>Keep history</button><button className="primary-button" disabled={Boolean(locked)} onClick={() => void action(() => service.clearHistory(crypto.randomUUID())).then(success => { if (success) { setHistoryPage(0); setResult(null); } })}>Clear history</button></div></> : null}
       {panel === 'rebet' ? <><p>Replace your {formatChips(total)}-chip draft with the previous round’s {formatChips(lastRound?.stake ?? 0)} chips? This places the bets without starting a spin.</p><div className="confirm-actions"><button onClick={() => setPanel(null)}>Keep draft</button><button className="primary-button" onClick={() => { if (lastRound) replaceDraft(lastRound.bets); setPanel(null); }}>Replace draft</button></div></> : null}
     </Modal> : null}
   </main>;
 }
+
+
