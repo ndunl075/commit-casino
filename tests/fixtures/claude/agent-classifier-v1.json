@@ -1,0 +1,2115 @@
+[
+  {
+    "name": "clean",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Clean Run",
+      "reason": "Fresh required suites pass without observed failures",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "session-end-clean",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "session-end",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Clean Run",
+      "reason": "Fresh required suites pass without observed failures",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "session-end-without-stop-attention",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [],
+      "boundary": "session-end",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": null,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": true
+    },
+    "expected": {
+      "outcome": "Needs Help",
+      "reason": "User intervention unresolved at terminal boundary",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "session-end-without-stop-no-tests",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [],
+      "boundary": "session-end",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": null,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Every required test suite needs a fresh final pass",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "session-end-without-stop-fresh-tests",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "session-end",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": null,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Clean Run",
+      "reason": "Fresh required suites pass without observed failures",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "comeback",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "early",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 1,
+          "completedSequence": 2,
+          "passed": 0,
+          "failed": 1,
+          "skipped": 0,
+          "observedFailedAttempts": 1,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Comeback",
+      "reason": "Fresh required suites pass after observed failure",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "last-run-fails",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "last",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 0,
+          "failed": 1,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Broken Build",
+      "reason": "Final required verification failed",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "required-failure-not-hidden",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "early",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 0,
+          "failed": 1,
+          "skipped": 0,
+          "observedFailedAttempts": 1,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "other",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unrelated",
+          "kind": "test",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Broken Build",
+      "reason": "Final required verification failed",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "parallel-required-suites",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit",
+        "e2e"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "e2e",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "e2e",
+          "kind": "test",
+          "startedSequence": 4,
+          "completedSequence": 6,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Clean Run",
+      "reason": "Fresh required suites pass without observed failures",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "overlapping-same-suite",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 8,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "overlap",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 4,
+          "completedSequence": 6,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Overlapping runs of the same check are ambiguous",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "unresolved-attention",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": true
+    },
+    "expected": {
+      "outcome": "Needs Help",
+      "reason": "User intervention unresolved at terminal boundary",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "attention-after-gap",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": false,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": true
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Evidence coverage or attribution is uncertain",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "resolved-attention-clean",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Clean Run",
+      "reason": "Fresh required suites pass without observed failures",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "build-failure-after-tests",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "build",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "build",
+          "kind": "build",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Broken Build",
+      "reason": "Final registered build failed",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "build-failure-without-tests",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "build",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "build",
+          "kind": "build",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Broken Build",
+      "reason": "Final registered build failed",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "required-build-missing",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [
+        "build"
+      ],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Every required test suite needs a fresh final pass",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "required-build-fails",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [
+        "build"
+      ],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "build",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "build",
+          "kind": "build",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Broken Build",
+      "reason": "Final required verification failed",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "build-only-pass",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "build",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Every required test suite needs a fresh final pass",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "build-comeback",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "build",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "build",
+          "kind": "build",
+          "startedSequence": 1,
+          "completedSequence": 2,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "build-pass",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "build",
+          "kind": "build",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Comeback",
+      "reason": "Fresh required suites pass after observed failure",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "missing-suite",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit",
+        "e2e"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Every required test suite needs a fresh final pass",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "no-tests",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Every required test suite needs a fresh final pass",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "no-required-suites",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Every required test suite needs a fresh final pass",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "missing-boundary",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": null,
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Terminal boundary or drained watermark unavailable",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "undrained-watermark",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 9,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Terminal boundary or drained watermark unavailable",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "stop-candidate-only",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": null,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Terminal boundary or drained watermark unavailable",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "stop-after-boundary",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 10,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Terminal boundary or drained watermark unavailable",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "stale-verification",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 4,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Final verification predates possible workspace mutation",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "mutation-tracking-incomplete",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": false,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Evidence coverage or attribution is uncertain",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "unaccounted-tool",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": true,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Evidence coverage or attribution is uncertain",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "attribution-conflict",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": false,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Evidence coverage or attribution is uncertain",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "event-gap",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": false,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Evidence coverage or attribution is uncertain",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "zero-tests",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "flaky-final",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 1,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "exit-report-conflict",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "canceled-final",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "canceled",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": true
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "incomplete-run",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "incomplete",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "unsupported-version",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": false,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "wrong-session",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "other",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "wrong-turn",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "other",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "duplicate-run",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "late-completion",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 11,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Unsupported, incomplete, canceled, conflicting or unattributed run",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "ambiguous-build-before-attention",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "build",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "build",
+          "kind": "build",
+          "startedSequence": 6,
+          "completedSequence": 7,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        },
+        {
+          "runId": "other-build",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "build",
+          "kind": "build",
+          "startedSequence": 6,
+          "completedSequence": 8,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 1,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": true
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Overlapping runs of the same check are ambiguous",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  },
+  {
+    "name": "duplicate-policy-suite",
+    "evidence": {
+      "sessionId": "s",
+      "turnId": "t",
+      "requiredSuiteIds": [
+        "unit",
+        "unit"
+      ],
+      "requiredBuildIds": [],
+      "runs": [
+        {
+          "runId": "r1",
+          "sessionId": "s",
+          "turnId": "t",
+          "suiteId": "unit",
+          "kind": "test",
+          "startedSequence": 3,
+          "completedSequence": 5,
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "observedFailedAttempts": 0,
+          "exitCode": 0,
+          "integrity": "valid",
+          "supported": true,
+          "canceled": false
+        }
+      ],
+      "boundary": "next-turn",
+      "boundarySequence": 10,
+      "consumedSequence": 10,
+      "latestStopSequence": 9,
+      "lastMutationSequence": 2,
+      "continuousCoverage": true,
+      "attributionValid": true,
+      "mutationTrackingComplete": true,
+      "unaccountedActivity": false,
+      "unresolvedAttention": false
+    },
+    "expected": {
+      "outcome": "Unknown",
+      "reason": "Invalid verification policy",
+      "classifierVersion": "agent-classifier-v1",
+      "payoutVersion": "agent-v1"
+    }
+  }
+]
