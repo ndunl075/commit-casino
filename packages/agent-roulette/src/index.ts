@@ -72,6 +72,17 @@ export function classifyTurn(e: TurnEvidence): Classification {
   if (configured.some(([kind, id], i) => !id || configured.slice(0, i).some(([k, n]) => k === kind && n === id)))
     return unknown('Invalid verification policy');
   const finals: VerificationRun[] = [];
+  const observedChecks = new Map<string, VerificationRun[]>();
+  for (const r of e.runs) {
+    const key = JSON.stringify([r.kind, r.suiteId]);
+    const checks = observedChecks.get(key) ?? [];
+    checks.push(r); observedChecks.set(key, checks);
+  }
+  for (const runs of observedChecks.values()) {
+    runs.sort((a, b) => a.startedSequence - b.startedSequence);
+    if (runs.some((r, i) => i > 0 && (runs[i - 1]?.completedSequence ?? 0) >= r.startedSequence))
+      return unknown('Overlapping runs of the same check are ambiguous');
+  }
   for (const [kind, suiteId] of configured) {
     const runs = e.runs.filter(r => r.kind === kind && r.suiteId === suiteId).sort((a, b) => a.startedSequence - b.startedSequence);
     if (runs.some((r, i) => i > 0 && (runs[i - 1]?.completedSequence ?? 0) >= r.startedSequence))
@@ -85,8 +96,6 @@ export function classifyTurn(e: TurnEvidence): Classification {
     return unknown('Final verification predates possible workspace mutation');
   if (finals.some(r => r.exitCode !== 0 || r.failed > 0 || r.observedFailedAttempts > 0))
     return result('Broken Build', 'Final required verification failed');
-  if (e.requiredSuiteIds.length === 0 || finals.length !== configured.length)
-    return unknown('Every required test suite needs a fresh final pass');
   // Optional registered checks can contribute failures and cannot be hidden by required passes.
   const buildIds = new Set(e.runs.filter(r => r.kind === 'build').map(r => r.suiteId));
   for (const id of buildIds) {
@@ -95,6 +104,8 @@ export function classifyTurn(e: TurnEvidence): Classification {
     const final = runs.at(-1);
     if (final && final.exitCode !== 0) return result('Broken Build', 'Final registered build failed');
   }
+  if (e.requiredSuiteIds.length === 0 || finals.length !== configured.length)
+    return unknown('Every required test suite needs a fresh final pass');
   const earlierFailure = e.runs.some(r => r.exitCode !== 0 || r.failed > 0 || r.observedFailedAttempts > 0);
   return result(earlierFailure ? 'Comeback' : 'Clean Run', earlierFailure ? 'Fresh required suites pass after observed failure' : 'Fresh required suites pass without observed failures');
 }

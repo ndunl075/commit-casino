@@ -1,0 +1,13 @@
+{
+  "providerVersion": "2.1.287",
+  "platform": "Windows x86_64",
+  "verifiedAt": "2026-10-12",
+  "provenance": "Observed installed native Claude CLI using --init-only, isolated CLAUDE_CONFIG_DIR and explicit settings with no other settings sources. No conversation, model prompt, permissions bypass, user-hook edit, or transcript access. Native helper executable path contained spaces and non-ASCII characters. Provider and helper stdout/stderr empty; provider exit 0.",
+  "verifiedCapabilities": ["exec-form command+args hooks", "SessionStart", "SessionEnd", "HMAC private filesystem transport", "sanitized metadata only"],
+  "notYetLiveVerified": ["UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "PermissionRequest", "Notification", "Stop", "verified-run attribution across real coding turns"],
+  "events": [
+    {"sourceSequence":1,"observation":{"sessionId":"redacted-live-session","type":"session-start"}},
+    {"sourceSequence":2,"observation":{"sessionId":"redacted-live-session","type":"session-end"}}
+  ],
+  "liveAgentWageringEnabled": false
+}

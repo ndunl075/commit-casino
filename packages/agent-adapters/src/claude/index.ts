@@ -1,6 +1,6 @@
 /** Fixture support is deliberately distinct from a claim of live compatibility. */
-export const testedClaudeVersions: readonly string[] = [];
-export const claudeIntegrationStatus = { passive: true, liveWageringEnabled: false, reason: 'Real supported-provider lifecycle and native attribution acceptance checks required' } as const;
+export const testedClaudeVersions: readonly string[] = ['2.1.287'];
+export const claudeIntegrationStatus = { passive: true, liveWageringEnabled: false, reason: 'Windows session start/end transport verified on 2.1.287; full turn, attention, attribution and settlement acceptance checks required' } as const;
 export type ToolEffect = 'read' | 'possible-mutation' | 'other';
 export type Observation =
   | { type: 'session-start' | 'session-end' | 'turn-start' | 'stop-candidate'; payload: Record<string, never> }
