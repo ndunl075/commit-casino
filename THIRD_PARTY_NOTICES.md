@@ -19,8 +19,15 @@ The exact resolved JavaScript dependencies and their license identifiers are in
 | rusqlite | MIT |
 | SQLite | Public domain |
 
-Cargo lockfiles record native dependencies. Distribution preparation must include
-the dependency license inventory and applicable license texts. Microsoft WebView2
-is distributed under Microsoft's WebView2 terms, separate from the project's MIT
-license. Review those terms before redistributing the offline runtime. Unsigned
-Windows installers may show Windows reputation/security prompts.
+Cargo lockfiles record native dependencies. The build collects applicable license
+texts and a resolved inventory into the installer and release license archive.
+Rust 1.99 standard-library notices are preserved in `third-party/rust`, sourced
+from the [official Rust release](https://github.com/rust-lang/rust/tree/1.99.0).
+
+Microsoft Edge WebView2 Runtime, copyright Microsoft Corporation, is distributed
+unmodified under Microsoft's separate terms; the project's MIT license does not
+apply to it. The NSIS package embeds Microsoft's Evergreen Standalone Installer,
+following [Microsoft's distribution documentation](https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution)
+and [Tauri's offline installer configuration](https://v2.tauri.app/distribute/windows-installer/).
+Microsoft controls Evergreen runtime updates independently of the game's offline
+assets. Unsigned Windows installers may show reputation/security prompts.

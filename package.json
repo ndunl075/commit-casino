@@ -22,8 +22,9 @@
     "lint:native": "node scripts/native.mjs lint",
     "test:ui": "npm run test:browser --workspace @commit-casino/game-ui",
     "test:desktop": "node scripts/native-smoke.mjs",
+    "test:installer": "node scripts/installer-smoke.mjs",
     "licenses": "node scripts/collect-licenses.mjs",
-    "package:release": "powershell -NoProfile -File scripts/package-release.ps1",
+    "package:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-release.ps1",
     "build:web": "vite build --config apps/web/vite.config.ts",
     "build:desktop": "node scripts/native.mjs build",
     "generate:catalog": "node scripts/generate-catalog.mjs"

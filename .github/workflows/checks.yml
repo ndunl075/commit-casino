@@ -56,6 +56,7 @@ jobs:
       - run: npm run test:desktop
       - run: npm run build:web
       - run: npm run build:desktop
+      - run: npm run test:installer
       - run: npm run package:release
       - uses: actions/upload-artifact@v7
         with:
