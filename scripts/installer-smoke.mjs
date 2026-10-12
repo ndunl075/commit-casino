@@ -5,6 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium,expect} from '@playwright/test';
 import {configureHostedWebView} from './hosted-webview-policy.mjs';
+import {assertSystemRuntime} from './windows-runtime.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 if(process.platform!=='win32')throw Error('Installer smoke requires Windows.');
 const directory=path.join(root,'.cache',`installer-smoke-${Date.now()}`);
@@ -15,6 +16,7 @@ if(installed.error||installed.status!==0)throw installed.error??Error('Installer
 let child,browser,restoreHostedPolicy=()=>{};
 try{
  for(const relative of ['commit-casino.exe','commit-casino-bridge.exe','licenses/inventory.json','licenses/COMMIT-CASINO-LICENSE.txt'])if(!existsSync(path.join(directory,relative)))throw Error(`Installed resource missing: ${relative}`);
+ for(const executable of ['commit-casino.exe','commit-casino-bridge.exe'])assertSystemRuntime(path.join(directory,executable));
  const env={...process.env};for(const key of Object.keys(env))if(key.toLowerCase()==='path')delete env[key];env.PATH=path.join(process.env.SystemRoot??'C:/Windows','System32');env.WEBVIEW2_USER_DATA_FOLDER=path.join(directory,'smoke-webview');env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=19338';
  restoreHostedPolicy=configureHostedWebView(19338,path.join(directory,'smoke-webview'));
  child=spawn(path.join(directory,'commit-casino.exe'),['--auto-launch'],{env,windowsHide:true,stdio:'ignore'});
