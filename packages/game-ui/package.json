@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": { "test:browser": "playwright test --config tests/playwright.config.ts" },
   "exports": { ".": "./src/index.tsx", "./styles.css": "./src/styles.css" },
   "dependencies": {
     "@commit-casino/casino-contracts": "0.1.0",

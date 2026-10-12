@@ -5,10 +5,10 @@ export class CasinoAudio {
   private volume = 0.4;
   configure(mute: boolean, volume: number) { this.mute = mute; this.volume = Math.max(0, Math.min(1, volume)); }
   unlock() { try { this.context ??= new AudioContext(); void this.context.resume().catch(() => undefined); } catch { /* Audio is optional. */ } }
-  play(kind: 'chip' | 'spin' | 'win' | 'result') {
+  play(kind: 'chip' | 'spin' | 'win' | 'result' | 'notification') {
     if (this.mute || document.hidden || !this.context || this.context.state !== 'running') return;
     const context = this.context;
-    const notes = kind === 'win' ? [523.25, 659.25, 783.99] : kind === 'chip' ? [1300, 950] : kind === 'spin' ? [220, 330, 440] : [392, 293.66];
+    const notes = kind === 'notification' ? [880, 659.25] : kind === 'win' ? [523.25, 659.25, 783.99] : kind === 'chip' ? [1300, 950] : kind === 'spin' ? [220, 330, 440] : [392, 293.66];
     notes.forEach((hz, i) => {
       const t = context.currentTime + i * (kind === 'chip' ? 0.016 : 0.075);
       const oscillator = context.createOscillator(); const gain = context.createGain();
@@ -18,5 +18,5 @@ export class CasinoAudio {
       oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
     });
   }
-  destroy() { void this.context?.close().catch(() => undefined); }
+  destroy() { void this.context?.close().catch(() => undefined); this.context = undefined; }
 }

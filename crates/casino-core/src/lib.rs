@@ -9,7 +9,7 @@ use uuid::Uuid;
 pub const SAFE: i64 = 9_007_199_254_740_991;
 const CATALOG: &str = include_str!("../../../rules/european-v1.json");
 type Result<T> = std::result::Result<T, Error>;
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Error {
     pub code: &'static str,
     pub message: String,
@@ -129,6 +129,15 @@ pub struct Casino {
     db: Connection,
     catalog: Catalog,
 }
+pub struct PassiveObservation<'a> {
+    pub installation: &'a str,
+    pub session: &'a str,
+    pub event_id: &'a str,
+    pub sequence: u64,
+    pub event_type: &'a str,
+    pub turn_id: Option<&'a str>,
+    pub observed_at_ms: u64,
+}
 fn now() -> String {
     Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
@@ -166,6 +175,100 @@ fn secure_u32() -> Result<u32> {
     Ok(u32::from_le_bytes(bytes))
 }
 impl Casino {
+    pub fn integration_connected(&mut self, connected: bool) -> Result<()> {
+        let tx = self
+            .db
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let old: bool = tx.query_row(
+            "SELECT connected FROM integration_state WHERE id=1",
+            [],
+            |r| r.get(0),
+        )?;
+        if old != connected {
+            tx.execute(
+                "UPDATE integration_state SET connected=?1 WHERE id=1",
+                [connected],
+            )?;
+            bump(&tx)?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+    pub fn consumed_sequence(&self, installation: &str, session: &str) -> Result<u64> {
+        Ok(self
+            .db
+            .query_row(
+                "SELECT sequence FROM passive_sessions WHERE installation_id=?1 AND session_id=?2",
+                params![installation, session],
+                |r| r.get(0),
+            )
+            .optional()?
+            .unwrap_or(0))
+    }
+    /// The host authenticates the envelope before calling this method. Persist only lifecycle metadata.
+    pub fn ingest_passive(&mut self, observation: PassiveObservation<'_>) -> Result<bool> {
+        let PassiveObservation {
+            installation,
+            session,
+            event_id,
+            sequence,
+            event_type,
+            turn_id,
+            observed_at_ms,
+        } = observation;
+        if sequence > SAFE as u64 || observed_at_ms > SAFE as u64 {
+            return Err(Error::new(
+                "INTEGRATION_UNAVAILABLE",
+                "Invalid observation bounds.",
+            ));
+        }
+        let status = match event_type {
+            "session-start" => "idle",
+            "turn-start" | "tool-start" | "tool-end" => "working",
+            "attention-requested" => "attention",
+            "stop-candidate" => "stopped",
+            "session-end" => "ended",
+            "verified-run-started" | "verified-run-completed" => "working",
+            _ => {
+                return Err(Error::new(
+                    "INTEGRATION_UNAVAILABLE",
+                    "Unknown observation type.",
+                ))
+            }
+        };
+        let tx = self
+            .db
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let consumed: u64 = tx
+            .query_row(
+                "SELECT sequence FROM passive_sessions WHERE installation_id=?1 AND session_id=?2",
+                params![installation, session],
+                |r| r.get(0),
+            )
+            .optional()?
+            .unwrap_or(0);
+        if sequence <= consumed {
+            return Ok(false);
+        }
+        if sequence != consumed + 1 {
+            return Err(Error::new(
+                "INTEGRATION_UNAVAILABLE",
+                "Observation sequence gap. Waiting for missing lifecycle data.",
+            ));
+        }
+        tx.execute("INSERT INTO passive_events(event_id,installation_id,session_id,sequence,type,observed_at_ms) VALUES(?1,?2,?3,?4,?5,?6)",params![event_id,installation,session,sequence,event_type,observed_at_ms])?;
+        tx.execute("INSERT INTO passive_sessions(installation_id,session_id,sequence,status,turn_id,last_event_at_ms) VALUES(?1,?2,?3,?4,?5,?6) ON CONFLICT(installation_id,session_id) DO UPDATE SET sequence=excluded.sequence,status=excluded.status,turn_id=excluded.turn_id,last_event_at_ms=excluded.last_event_at_ms",params![installation,session,sequence,status,turn_id,observed_at_ms])?;
+        tx.execute(
+            "DELETE FROM passive_events WHERE observed_at_ms<?1",
+            [observed_at_ms.saturating_sub(30 * 86_400_000)],
+        )?;
+        bump(&tx)?;
+        tx.commit()?;
+        Ok(true)
+    }
+    pub fn passive_sessions(&self) -> Result<Vec<Value>> {
+        passive_sessions_db(&self.db)
+    }
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let db = Connection::open(path.as_ref())?;
         db.busy_timeout(Duration::from_secs(3))?;
@@ -173,7 +276,7 @@ impl Casino {
             "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;",
         )?;
         let version: i64 = db.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-        if version > 1 {
+        if version > 2 {
             return Err(Error::new(
                 "VERSION_MISMATCH",
                 "This database needs a newer Commit Casino. Preserve your data.",
@@ -197,6 +300,17 @@ impl Casino {
                 "INSERT OR IGNORE INTO settings(id,json) VALUES(1,?1)",
                 [encode(&Settings::default())?],
             )?;
+        }
+        // Consistent SQLite backup is required before upgrading an existing wallet.
+        if version == 1 && path.as_ref() != Path::new(":memory:") {
+            db.backup(
+                rusqlite::DatabaseName::Main,
+                path.as_ref().with_extension("pre-v2.sqlite3"),
+                None,
+            )?;
+        }
+        if version < 2 {
+            db.execute_batch(include_str!("integration.sql"))?;
         }
         let catalog: Catalog = serde_json::from_str(CATALOG)?;
         validate_catalog(&catalog)?;
@@ -663,9 +777,20 @@ fn snapshot_db(db: &Connection) -> Result<Value> {
     let achievements = q
         .query_map([], |r| r.get::<_, String>(0))?
         .collect::<std::result::Result<Vec<_>, _>>()?;
+    let connected: bool = db.query_row(
+        "SELECT connected FROM integration_state WHERE id=1",
+        [],
+        |r| r.get(0),
+    )?;
     Ok(
-        json!({"revision":state_revision,"wallet":{"balance":balance,"revision":revision,"epoch":epoch},"activeRound":active,"history":rounds,"settings":serde_json::from_str::<Settings>(&settings)?,"stats":serde_json::from_str::<Stats>(&stats)?,"achievements":achievements,"features":{"agentIntegration":false,"agentRoulette":false},"sessions":[]}),
+        json!({"revision":state_revision,"wallet":{"balance":balance,"revision":revision,"epoch":epoch},"activeRound":active,"history":rounds,"settings":serde_json::from_str::<Settings>(&settings)?,"stats":serde_json::from_str::<Stats>(&stats)?,"achievements":achievements,"features":{"agentIntegration":connected,"agentRoulette":false},"sessions":passive_sessions_db(db)?}),
     )
+}
+fn passive_sessions_db(db: &Connection) -> Result<Vec<Value>> {
+    let mut q=db.prepare("SELECT session_id,sequence,status,turn_id,last_event_at_ms FROM passive_sessions ORDER BY last_event_at_ms DESC LIMIT 100")?;
+    let clock = Utc::now().timestamp_millis();
+    let rows=q.query_map([],|r|{let last:i64=r.get(4)?;let status:String=r.get(2)?;let stale=clock.saturating_sub(last)>300_000&&status!="ended";Ok(json!({"sessionId":r.get::<_,String>(0)?,"sequence":r.get::<_,i64>(1)?,"status":if stale{"stale"}else{status.as_str()},"turnId":r.get::<_,Option<String>>(3)?,"lastEventAtMs":last}))})?.collect::<std::result::Result<Vec<_>,_>>()?;
+    Ok(rows)
 }
 
 #[cfg(test)]

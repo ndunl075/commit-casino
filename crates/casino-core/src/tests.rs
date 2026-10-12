@@ -1,4 +1,43 @@
 use super::*;
+#[test]
+fn passive_lifecycle_is_contiguous_and_financially_isolated() {
+    let mut c = game();
+    let clock = Utc::now().timestamp_millis() as u64;
+    let event = |sequence, event_type| PassiveObservation {
+        installation: "install",
+        session: "session",
+        event_id: if sequence == 1 {
+            "event-one"
+        } else {
+            "event-two"
+        },
+        sequence,
+        event_type,
+        turn_id: Some("turn"),
+        observed_at_ms: clock,
+    };
+    assert!(c.ingest_passive(event(2, "turn-start")).is_err());
+    assert!(c.ingest_passive(event(1, "session-start")).unwrap());
+    assert!(!c.ingest_passive(event(1, "session-start")).unwrap());
+    assert!(c.ingest_passive(event(2, "attention-requested")).unwrap());
+    assert_eq!(c.consumed_sequence("install", "session").unwrap(), 2);
+    assert_eq!(c.passive_sessions().unwrap()[0]["status"], "attention");
+    assert_eq!(c.snapshot().unwrap()["wallet"]["balance"], 10000);
+    assert_eq!(c.snapshot().unwrap()["features"]["agentRoulette"], false);
+    assert!(c.reconcile().unwrap());
+}
+#[test]
+fn failed_settlement_rolls_back_credit_and_recovers() {
+    let mut c = game();
+    let round = c.commit_with(request(0), || Ok(7)).unwrap();
+    c.db.execute_batch("CREATE TRIGGER failed_credit BEFORE INSERT ON wallet_ledger WHEN NEW.kind='return' BEGIN SELECT RAISE(ABORT,'fail'); END;").unwrap();
+    assert!(c.settle(&round.round_id).is_err());
+    assert_eq!(c.snapshot().unwrap()["wallet"]["balance"], 9850);
+    c.db.execute_batch("DROP TRIGGER failed_credit;").unwrap();
+    c.settle(&round.round_id).unwrap();
+    assert_eq!(c.snapshot().unwrap()["wallet"]["balance"], 13550);
+    assert!(c.reconcile().unwrap());
+}
 fn request(revision: i64) -> CommitRequest {
     CommitRequest {
         request_id: Uuid::new_v4().to_string(),
