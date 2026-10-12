@@ -7,7 +7,7 @@ export function RouletteTable({ bets, locked, outcome, onPlace, onHover }: { bet
   function preview(bet: TableBet | null) { setHovered(bet); onHover(bet); }
   return <div className="table-scroll" aria-label="Roulette betting table">
     <div className="roulette-table" style={{ aspectRatio: `${TABLE_WIDTH}/${TABLE_HEIGHT}` }}>
-      <svg className="felt-grid" viewBox={`0 0 ${TABLE_WIDTH} ${TABLE_HEIGHT}`} aria-hidden="true">
+      <svg className="felt-grid" viewBox={`0 0 ${TABLE_WIDTH} ${TABLE_HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
         <defs><pattern id="felt-grain" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.45" fill="#fff" opacity=".075"/></pattern></defs>
         <rect width={TABLE_WIDTH} height={TABLE_HEIGHT} fill="url(#felt-grain)"/>
         <path d="M80 24H848V234H80Z M80 94H848 M80 164H848" fill="none" stroke="#b2c5ad" strokeOpacity=".65" strokeWidth="1.3"/>
