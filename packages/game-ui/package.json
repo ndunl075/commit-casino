@@ -1,0 +1,14 @@
+{
+  "name": "@commit-casino/game-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.tsx", "./styles.css": "./src/styles.css" },
+  "dependencies": {
+    "@commit-casino/casino-contracts": "0.1.0",
+    "@commit-casino/roulette-engine": "0.1.0",
+    "pixi.js": "8.22.0",
+    "react": "19.3.0",
+    "zustand": "5.0.15"
+  }
+}
