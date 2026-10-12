@@ -25,7 +25,17 @@ const denominations = [10, 50, 100, 500, 1000];
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatChips(Math.abs(n))}`;
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'The local service could not complete this action. Please try again.';
 
-export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindowMode, integration }: CasinoAppProps) {
+export function CasinoApp(props: CasinoAppProps) {
+  const identity = useRef({ service: props.service, generation: 0 });
+  if (identity.current.service !== props.service) identity.current = { service: props.service, generation: identity.current.generation + 1 };
+  const epoch = identity.current;
+  return <CasinoGame key={epoch.generation} {...props} isCurrentService={() => identity.current === epoch}/>;
+}
+
+function CasinoGame({ service, temporary = false, onTemporaryPlay, onWindowMode, integration, isCurrentService }: CasinoAppProps & { isCurrentService: () => boolean }) {
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const isActive = () => mounted.current && isCurrentService();
   const [draftStore] = useState(createDraftStore); const draft = useStore(draftStore);
   const [audio] = useState(() => new CasinoAudio());
   const [snapshot, setSnapshot] = useState<CasinoSnapshot | null>(null);
@@ -43,9 +53,10 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
   const [systemReducedMotion, setSystemReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   function accept(next: CasinoSnapshot) {
+    if (!isActive()) return;
     if (!snapshotRef.current || next.revision >= snapshotRef.current.revision) { snapshotRef.current = next; setSnapshot(next); }
   }
-  async function refresh() { try { accept(await service.getSnapshot()); setLoadError(''); } catch (cause) { setLoadError(errorMessage(cause)); } }
+  async function refresh() { try { const next = await service.getSnapshot(); if (!isActive()) return; accept(next); setLoadError(''); } catch (cause) { if (isActive()) setLoadError(errorMessage(cause)); } }
   useEffect(() => {
     let live = true; snapshotRef.current = null; setSnapshot(null); completed.current.clear(); pending.current = null; setUncertain(false); setPresentation(null); setResult(null); draftStore.getState().fresh();
     const receive = (next: CasinoSnapshot) => { if (!live) return; const previous = snapshotRef.current; accept(next); if (previous && next.revision > previous.revision + 1) void service.getSnapshot().then(value => { if (live) accept(value); }).catch(() => undefined); };
@@ -59,6 +70,7 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
   useEffect(() => () => audio.destroy(), [audio]);
   useEffect(() => { if (snapshot) audio.configure(snapshot.settings.mute, snapshot.settings.volume); }, [audio, snapshot?.settings.mute, snapshot?.settings.volume]);
   function receiveIntegration(next: IntegrationStatus) {
+    if (!isActive()) return;
     let notify = false;
     for (const session of next.sessions) {
       const previous = lastSessionStates.current.get(session.sessionId);
@@ -86,7 +98,10 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
   const lastRound = snapshot?.history[0];
   let potential = 0; try { potential = draft.bets.length ? maxGrossReturn(draft.bets) : 0; } catch { /* Authority rejects unsafe arithmetic. */ }
   const reduced = systemReducedMotion || snapshot?.settings.animationMode === 'reduced-motion';
-  const shownBets = draft.bets.length ? draft.bets : presentation?.bets ?? result?.bets ?? [];
+  const activePresentation = presentation ?? snapshot?.activeRound;
+  const shownBets = activePresentation?.bets ?? (draft.bets.length ? draft.bets : result?.bets ?? []);
+  const displayedTotal = activePresentation?.stake ?? total;
+  const displayedPotential = activePresentation ? maxGrossReturn(activePresentation.bets) : potential;
 
   function place(id: string) {
     if (locked || !snapshot) return;
@@ -110,26 +125,33 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
     pending.current ??= { requestId: crypto.randomUUID(), expectedWalletRevision: snapshot.wallet.revision, rulesVersion: 'european-v1', bets: draft.bets.map(b => ({ ...b })), animationMode: reduced ? 'reduced-motion' : snapshot.settings.animationMode };
     try {
       const round = await service.commitClassic(pending.current);
-      pending.current = null; setUncertain(false); draft.fresh(); setResult(null);
-      if (!completed.current.has(round.roundId)) setPresentation(round);
-      audio.play('spin'); await refresh();
+      if (!isActive()) return;
+      pending.current = null; setUncertain(false); draft.fresh();
+      if (completed.current.has(round.roundId)) {
+        setResult(snapshotRef.current?.history.find(r => r.roundId === round.roundId) ?? round);
+      } else {
+        setResult(null); setPresentation(round);
+        if (round.status === 'committed' && Date.now() - Date.parse(round.presentation.committedAt) < 1000) audio.play('spin');
+      }
+      await refresh();
     } catch (cause) {
+      if (!isActive()) return;
       const code = typeof cause === 'object' && cause !== null && 'code' in cause ? String(cause.code) : '';
       const rejected = ['INSUFFICIENT_FUNDS', 'STALE_REVISION', 'ROUND_ACTIVE', 'INVALID_BET', 'OVERFLOW', 'RNG_UNAVAILABLE', 'VERSION_MISMATCH', 'REQUEST_CONFLICT'].includes(code);
       if (rejected) pending.current = null;
       setUncertain(!rejected); setError(`${errorMessage(cause)}${!rejected ? ' Retry safely to recover the same spin request.' : ''}`);
       await refresh();
-    } finally { setBusy(false); }
+    } finally { if (isActive()) setBusy(false); }
   }
   function finish(round: CommittedRound) {
-    if (completed.current.has(round.roundId)) return;
+    if (!isActive() || completed.current.has(round.roundId)) return;
     completed.current.add(round.roundId); setResult(round); setPresentation(null);
     const recent = Date.now() - Date.parse(round.presentation.committedAt) < round.presentation.durationMs + 1500;
     if (recent) audio.play(round.netChange > 0 ? 'win' : 'result');
-    void service.acknowledgePresentation(round.roundId).then(() => service.getSnapshot()).then(accept).catch(cause => setError(errorMessage(cause)));
+    void service.acknowledgePresentation(round.roundId).then(async () => { if (isActive()) accept(await service.getSnapshot()); }).catch(cause => { if (isActive()) setError(errorMessage(cause)); });
   }
-  async function action(run: () => Promise<CasinoSnapshot>) { setBusy(true); setError(''); try { accept(await run()); setPanel(null); return true; } catch (cause) { setError(errorMessage(cause)); return false; } finally { setBusy(false); } }
-  async function settings(patch: Parameters<CasinoService['updateSettings']>[0]) { try { accept(await service.updateSettings(patch)); } catch (cause) { setError(errorMessage(cause)); } }
+  async function action(run: () => Promise<CasinoSnapshot>) { setBusy(true); setError(''); try { const next = await run(); if (!isActive()) return false; accept(next); setPanel(null); return true; } catch (cause) { if (isActive()) setError(errorMessage(cause)); return false; } finally { if (isActive()) setBusy(false); } }
+  async function settings(patch: Parameters<CasinoService['updateSettings']>[0]) { try { accept(await service.updateSettings(patch)); } catch (cause) { if (isActive()) setError(errorMessage(cause)); } }
 
   if (!snapshot) return <main className="casino-shell loading-screen"><div className="brand-symbol">C<span>•</span>C</div><p className="eyebrow">COMMIT CASINO</p><h1>{loadError ? 'Your saved game is unavailable.' : 'Setting your table…'}</h1>{loadError ? <><p>{loadError}</p><p>Your stored wallet has not been reset.</p><button className="primary-button" onClick={() => void refresh()}>Try again</button>{onTemporaryPlay ? <button className="text-button" onClick={onTemporaryPlay}>Play temporarily without saving</button> : null}</> : <p>Opening your local chip wallet.</p>}</main>;
 
@@ -153,19 +175,20 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
         <RouletteTable bets={shownBets} locked={Boolean(locked)} {...(result && !draft.bets.length ? { outcome: result.outcome } : {})} onPlace={place} onHover={setPreview}/>
         <div className="bet-preview" aria-live="polite">{preview ? <><strong>{betName(preview)}</strong><span>{preview.profitOdds}:1 profit · {formatChips(draft.chip * (preview.profitOdds + 1))} gross return per {formatChips(draft.chip)} chip</span></> : <><span className="preview-mark">＋</span><span>{result && !draft.bets.length ? 'Last round shown on the felt. Place a chip to start a fresh draft.' : 'Hover or focus a position to see its coverage and payout.'}</span></>}</div>
         <div className="chip-rack"><span className="eyebrow">CHOOSE YOUR CHIP</span><div className="chips" role="group" aria-label="Chip denomination">{denominations.map(value => <button key={value} className={`chip chip-${value} ${draft.chip === value ? 'selected' : ''}`} aria-pressed={draft.chip === value} aria-label={`${formatChips(value)} chip`} disabled={Boolean(locked)} onClick={() => { draft.setChip(value); audio.unlock(); audio.play('chip'); }}><span>{shortChips(value)}</span></button>)}</div><div className="draft-actions"><button disabled={Boolean(locked) || !draft.undoStack.length} onClick={draft.undo}>↶ Undo</button><button disabled={Boolean(locked) || !draft.bets.length} onClick={() => { draft.clear(); setResult(null); }}>Clear</button></div></div>
-        <div className="wager-bar"><div><span className="eyebrow">TOTAL BET</span><strong data-testid="total-bet">{formatChips(total)}<small> chips</small></strong></div><div className="return-preview"><span className="eyebrow">MAX. GROSS RETURN</span><strong>{formatChips(potential)}</strong></div><div className="bet-actions"><button disabled={Boolean(locked) || !lastRound} onClick={() => draft.bets.length ? setPanel('rebet') : lastRound && replaceDraft(lastRound.bets)}>Rebet</button><button disabled={Boolean(locked) || !draft.bets.length} onClick={() => replaceDraft(draft.bets.map(b => ({ ...b, stake: b.stake * 2 })))}>2×</button></div><button className="spin-button" disabled={busy || Boolean(presentation) || snapshot.activeRound?.status === 'committed' || (!uncertain && (!draft.bets.length || total > snapshot.wallet.balance))} onClick={() => void spin()}>{busy ? 'Committing…' : presentation || snapshot.activeRound?.status === 'committed' ? 'Spinning…' : uncertain ? 'Retry spin' : 'SPIN'}<span aria-hidden="true">↗</span></button></div>
+        <div className="wager-bar"><div><span className="eyebrow">TOTAL BET</span><strong data-testid="total-bet">{formatChips(displayedTotal)}<small> chips</small></strong></div><div className="return-preview"><span className="eyebrow">MAX. GROSS RETURN</span><strong>{formatChips(displayedPotential)}</strong></div><div className="bet-actions"><button disabled={Boolean(locked) || !lastRound} onClick={() => draft.bets.length ? setPanel('rebet') : lastRound && replaceDraft(lastRound.bets)}>Rebet</button><button disabled={Boolean(locked) || !draft.bets.length} onClick={() => replaceDraft(draft.bets.map(b => ({ ...b, stake: b.stake * 2 })))}>2×</button></div><button className="spin-button" disabled={busy || Boolean(presentation) || snapshot.activeRound?.status === 'committed' || (!uncertain && (!draft.bets.length || total > snapshot.wallet.balance))} onClick={() => void spin()}>{busy ? 'Committing…' : presentation || snapshot.activeRound?.status === 'committed' ? 'Spinning…' : uncertain ? 'Retry spin' : 'SPIN'}<span aria-hidden="true">↗</span></button></div>
       </div>
     </section>
     <section className="bottom-bar" aria-label="Wallet and recent results"><div className="wallet"><span className="wallet-icon" aria-hidden="true">◈</span><div><span className="eyebrow">YOUR CHIP WALLET</span><strong data-testid="wallet-balance">{formatChips(snapshot.wallet.balance)}</strong></div>{snapshot.wallet.balance === 0 ? <button className="refill-button" disabled={Boolean(locked)} onClick={() => void action(() => service.refillWallet(crypto.randomUUID()))}>Free refill +10,000</button> : <span className="wallet-unit">FICTIONAL CHIPS</span>}</div><div className="recent"><span className="eyebrow">RECENT<br/>RESULTS</span><div className="recent-numbers">{snapshot.history.length ? snapshot.history.slice(0, 20).map((round, i) => <span key={round.roundId} className={`recent-pocket pocket-${colorOf(round.outcome)} ${i === 0 ? 'latest-pocket' : ''}`} title={`Result ${round.outcome}; net ${signed(round.netChange)} chips`}>{round.outcome}</span>) : <span className="empty-history">Your first spin starts the story.</span>}</div></div></section>
-    {error ? <div className="error-banner" role="alert"><span>{error}</span><button aria-label="Dismiss message" onClick={() => setError('')}>×</button></div> : null}
+    {error && !panel ? <div className="error-banner" role="alert"><span>{error}</span><button aria-label="Dismiss message" onClick={() => setError('')}>×</button></div> : null}
     <footer className="footer"><span>ALL THE GAME. NONE OF THE STAKES.</span><span>Free fictional chips · No purchases · No cash value</span><span className="agent-status">{snapshot.features.agentIntegration ? 'Agent integration available in desktop setup' : 'Classic mode · Agent integration unavailable'}</span></footer>
 
     {panel ? <Modal title={{ settings: 'Make yourself comfortable', history: 'Round history', stats: 'Your time at the table', rules: 'The game, at a glance', picker: 'Find your bet', reset: 'Start a fresh wallet?', 'clear-history': 'Clear visible history?', rebet: 'Replace your draft?', integration: 'Connect Claude Code', welcome: 'Welcome to Commit Casino' }[panel]} wide={panel === 'picker' || panel === 'history' || panel === 'integration'} onClose={() => setPanel(null)}>
+      {error ? <div className="error-banner" role="alert"><span>{error}</span><button aria-label="Dismiss message" onClick={() => setError('')}>×</button></div> : null}
       {panel === 'welcome' ? <div className="welcome-panel"><span className="brand-symbol">C<span>•</span>C</span><p className="modal-intro">Your downtime deserves<br/>a good game.</p><p>Your table starts with 10,000 free fictional chips. Classic Roulette is ready whenever you are. Optionally connect Claude Code for passive session notices while your agent works.</p><div className="welcome-actions"><button className="primary-button" onClick={() => { audio.unlock(); setPanel(null); }}>Play now</button><button onClick={() => setPanel('integration')}>Connect Claude Code</button></div><small>No purchases. No cash value. Everything stays local.</small></div> : null}
       {panel === 'integration' && integration ? <IntegrationPanel integration={integration} onStatus={receiveIntegration}/> : null}
       {panel === 'picker' ? <><p>Every table position, available by keyboard. Choose a bet to place one {formatChips(draft.chip)} chip.</p><label className="search-label">Search by number or bet type<input autoFocus type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Try 7, split, red, or dozen"/></label><div className="picker-list">{catalog.bets.filter(b => `${betName(b)} ${b.id} ${b.numbers.join(' ')}`.toLowerCase().includes(query.toLowerCase())).map(b => <button key={b.id} disabled={Boolean(locked)} onClick={() => place(b.id)}><span><strong>{betName(b)}</strong><small>{b.numbers.join(' · ')}</small></span><span>{b.profitOdds}:1 <b>＋{shortChips(draft.chip)}</b></span></button>)}</div><p className="picker-total">Current draft: {formatChips(total)} chips <button className="primary-button" onClick={() => setPanel(null)}>Back to table</button></p></> : null}
       {panel === 'rules' ? <><p className="modal-intro">A classic European table.<br/>A little room to take a chance.</p><ol className="how-to"><li><strong>Choose a chip</strong><span>Pick 10, 50, 100, 500, or 1,000. Every click adds one chip.</span></li><li><strong>Place your bets</strong><span>Bet a number, the edge between numbers, a corner, or an outside area. The small 3 and 6 rail positions cover one or two streets.</span></li><li><strong>Give it a spin</strong><span>The spin locks your bets. A winning bet returns its stake plus the listed profit.</span></li></ol><div className="odds-grid">{[['Straight', '35:1'], ['Split', '17:1'], ['Street / zero trio', '11:1'], ['Corner / first four', '8:1'], ['Six line', '5:1'], ['Dozen / column', '2:1'], ['Even-money bets', '1:1']].map(([name, odds]) => <div key={name}><span>{name}</span><strong>{odds}</strong></div>)}</div><p>Zero is green and loses on every outside bet. Each of the 37 pockets has the same chance on every spin. Past results do not predict the next result.</p><p>These are free fictional chips with no monetary value. You can refill an empty wallet or reset it in Settings.</p></> : null}
-      {panel === 'settings' ? <><div className="setting-row"><div><strong>Table sounds</strong><small>Original chip and result tones</small></div><button aria-pressed={!snapshot.settings.mute} onClick={() => { audio.unlock(); void settings({ mute: !snapshot.settings.mute }); }}>{snapshot.settings.mute ? 'Muted' : 'On'}</button></div><label className="setting-row"><span>Master volume</span><input type="range" min="0" max="1" step="0.05" value={snapshot.settings.volume} onChange={e => void settings({ volume: Number(e.target.value) })}/></label><label className="setting-row"><span>Spin animation</span><select value={snapshot.settings.animationMode} onChange={e => void settings({ animationMode: e.target.value as CasinoSnapshot['settings']['animationMode'] })}><option value="normal">Normal · about 6 seconds</option><option value="fast">Fast · about 2 seconds</option><option value="reduced-motion">Reduced motion</option></select></label>{systemReducedMotion ? <p className="muted">Your system’s reduced-motion preference is active.</p> : null}<div className="setting-row"><div><strong>Agent notification sound</strong><small>{snapshot.features.agentIntegration ? 'Separate from table sounds' : 'Available with desktop agent integration'}</small></div><button disabled={!snapshot.features.agentIntegration} aria-pressed={snapshot.settings.notificationSound} onClick={() => void settings({ notificationSound: !snapshot.settings.notificationSound })}>{snapshot.settings.notificationSound ? 'On' : 'Off'}</button></div>{onWindowMode ? <label className="setting-row"><span>Window size</span><select value={snapshot.settings.windowMode} onChange={e => { const mode = e.target.value as 'compact' | 'standard' | 'fullscreen'; void Promise.resolve(onWindowMode(mode)).then(() => settings({ windowMode: mode })).catch(cause => setError(errorMessage(cause))); }}><option value="compact">Compact</option><option value="standard">Standard</option><option value="fullscreen">Fullscreen</option></select></label> : null}<div className="settings-section"><h3>Your local data</h3><p>{temporary ? 'This session is temporary and will not be saved.' : 'Your wallet, settings, and round history stay on this device.'}</p><button disabled={Boolean(locked)} onClick={() => setPanel('reset')}>Reset wallet to 10,000</button><button disabled={Boolean(locked)} onClick={() => setPanel('clear-history')}>Clear visible history</button></div></> : null}
+      {panel === 'settings' ? <><div className="setting-row"><div><strong>Table sounds</strong><small>Original chip and result tones</small></div><button aria-pressed={!snapshot.settings.mute} onClick={() => { audio.unlock(); void settings({ mute: !snapshot.settings.mute }); }}>{snapshot.settings.mute ? 'Muted' : 'On'}</button></div><label className="setting-row"><span>Master volume</span><input type="range" min="0" max="1" step="0.05" value={snapshot.settings.volume} onChange={e => void settings({ volume: Number(e.target.value) })}/></label><label className="setting-row"><span>Spin animation</span><select value={snapshot.settings.animationMode} onChange={e => void settings({ animationMode: e.target.value as CasinoSnapshot['settings']['animationMode'] })}><option value="normal">Normal · about 6 seconds</option><option value="fast">Fast · about 2 seconds</option><option value="reduced-motion">Reduced motion</option></select></label>{systemReducedMotion ? <p className="muted">Your system’s reduced-motion preference is active.</p> : null}<div className="setting-row"><div><strong>Agent notification sound</strong><small>{snapshot.features.agentIntegration ? 'Separate from table sounds' : 'Available with desktop agent integration'}</small></div><button disabled={!snapshot.features.agentIntegration} aria-pressed={snapshot.settings.notificationSound} onClick={() => void settings({ notificationSound: !snapshot.settings.notificationSound })}>{snapshot.settings.notificationSound ? 'On' : 'Off'}</button></div>{onWindowMode ? <label className="setting-row"><span>Window size</span><select value={snapshot.settings.windowMode} onChange={e => { const mode = e.target.value as 'compact' | 'standard' | 'fullscreen'; void Promise.resolve(onWindowMode(mode)).then(() => isActive() ? settings({ windowMode: mode }) : undefined).catch(cause => { if (isActive()) setError(errorMessage(cause)); }); }}><option value="compact">Compact</option><option value="standard">Standard</option><option value="fullscreen">Fullscreen</option></select></label> : null}<div className="settings-section"><h3>Your local data</h3><p>{temporary ? 'This session is temporary and will not be saved.' : 'Your wallet, settings, and round history stay on this device.'}</p><button disabled={Boolean(locked)} onClick={() => setPanel('reset')}>Reset wallet to 10,000</button><button disabled={Boolean(locked)} onClick={() => setPanel('clear-history')}>Clear visible history</button></div></> : null}
       {panel === 'stats' ? <><p>Your Classic Roulette record. Gross returns include returned stakes; net change is returns minus all stakes.</p><div className="statistics-grid">{[['Spins', snapshot.stats.spins], ['Total staked', snapshot.stats.totalStake], ['Gross returns', snapshot.stats.grossReturns], ['Net change', signed(snapshot.stats.netChange)], ['Largest net win', snapshot.stats.largestWin], ['Longest winning streak', snapshot.stats.longestWinStreak]].map(([label, value]) => <div key={label}><span className="eyebrow">{label}</span><strong>{typeof value === 'number' ? formatChips(value) : value}</strong></div>)}</div><h3>Little milestones</h3><div className="achievements">{snapshot.achievements.length ? snapshot.achievements.map(key => <span key={key}>◇ {key.replaceAll('-', ' ').replaceAll('_', ' ')}</span>) : <p>Your first spin is the first milestone.</p>}</div></> : null}
       {panel === 'history' ? <>{snapshot.history.length ? <><div className="history-table"><table><thead><tr><th>Result</th><th>Time</th><th>Stake</th><th>Gross return</th><th>Net change</th></tr></thead><tbody>{snapshot.history.slice(historyPage * 20, historyPage * 20 + 20).map(round => <tr key={round.roundId}><td><span className={`recent-pocket pocket-${colorOf(round.outcome)}`}>{round.outcome}</span></td><td>{new Date(round.presentation.committedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td><td>{formatChips(round.stake)}</td><td>{formatChips(round.grossReturn)}</td><td className={round.netChange > 0 ? 'positive' : ''}>{signed(round.netChange)}</td></tr>)}</tbody></table></div><div className="pagination"><button disabled={historyPage === 0} onClick={() => setHistoryPage(v => v - 1)}>Previous</button><span>Page {historyPage + 1} of {Math.ceil(snapshot.history.length / 20)}</span><button disabled={(historyPage + 1) * 20 >= snapshot.history.length} onClick={() => setHistoryPage(v => v + 1)}>Next</button></div><p className="muted">Past results do not predict future spins.</p></> : <div className="empty-state"><span>◎</span><h3>A clean felt, a fresh start.</h3><p>Your settled rounds will appear here.</p></div>}</> : null}
       {panel === 'reset' ? <><p>Your wallet will start a new chapter with 10,000 free chips. Your round history stays available.</p><div className="confirm-actions"><button onClick={() => setPanel('settings')}>Keep my wallet</button><button className="primary-button" disabled={Boolean(locked)} onClick={() => void action(() => service.resetWallet(crypto.randomUUID())).then(success => { if (success) { draft.fresh(); setResult(null); } })}>Reset wallet</button></div></> : null}
@@ -174,5 +197,7 @@ export function CasinoApp({ service, temporary = false, onTemporaryPlay, onWindo
     </Modal> : null}
   </main>;
 }
+
+
 
 

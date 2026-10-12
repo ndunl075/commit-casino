@@ -1,0 +1,51 @@
+import { expect, test } from '@playwright/test';
+
+test('observer round chips take precedence without deleting the local draft', async ({ page }) => {
+  await page.goto('/?scenario=observer');
+  await page.locator('[data-bet-id="outside:red"]').click();
+  await page.evaluate(() => window.regression.observer());
+  await expect(page.locator('[data-bet-id="straight:7"] .placed-chip')).toHaveText('500');
+  await expect(page.locator('[data-bet-id="outside:red"] .placed-chip')).toHaveCount(0);
+  await expect(page.getByTestId('total-bet')).toHaveText('500 chips');
+  await page.getByText('net chips', { exact: true }).waitFor();
+  await page.evaluate(() => window.regression.settleObserver());
+  await expect(page.locator('[data-bet-id="outside:red"] .placed-chip')).toHaveText('100');
+  await expect(page.getByTestId('total-bet')).toHaveText('100 chips');
+});
+test('deferred old service cannot replace a new wallet or clear its draft', async ({ page }) => {
+  await page.goto('/?scenario=swap');
+  await page.locator('[data-bet-id="outside:red"]').click();
+  await page.getByRole('button', { name: 'SPIN', exact: false }).click();
+  await page.evaluate(() => window.regression.swap());
+  await expect(page.getByTestId('wallet-balance')).toHaveText('4,321');
+  await page.locator('[data-bet-id="straight:3"]').click();
+  await page.evaluate(() => window.regression.resolveOld());
+  await expect(page.getByTestId('wallet-balance')).toHaveText('4,321');
+  await expect(page.locator('[data-bet-id="straight:3"] .placed-chip')).toHaveText('100');
+  await expect(page.getByTestId('total-bet')).toHaveText('100 chips');
+  expect(await page.evaluate(() => window.regression.sounds.filter(s => s === 'spin'))).toEqual([]);
+});
+test('settings and reset failures are announced inside the open dialog', async ({ page }) => {
+  await page.goto('/?scenario=errors');
+  await page.locator('[data-bet-id="straight:3"]').click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('slider').fill('0.2');
+  await expect(page.getByRole('dialog').getByRole('alert')).toHaveText(/Settings write denied/);
+  await page.getByRole('button', { name: 'Reset wallet to 10,000' }).click();
+  await page.getByRole('button', { name: 'Reset wallet', exact: true }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toHaveText(/Reset write denied/);
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(page.getByTestId('total-bet')).toHaveText('100 chips');
+});
+test('idempotent retry preserves a presented result without stale spin audio', async ({ page }) => {
+  await page.goto('/?scenario=retry');
+  await page.locator('[data-bet-id="straight:7"]').click();
+  await page.getByRole('button', { name: 'SPIN', exact: false }).click();
+  await page.getByText('net chips', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Retry spin', exact: false }).click();
+  await expect(page.getByText('net chips', { exact: true })).toBeVisible();
+  await expect(page.locator('.result-number')).toHaveText('7');
+  await expect(page.getByTestId('wallet-balance')).toHaveText('27,500');
+  const state = await page.evaluate(() => ({ requests: window.regression.requests, sounds: window.regression.sounds }));
+  expect(state.requests).toHaveLength(2); expect(state.requests[0]).toBe(state.requests[1]); expect(state.sounds.filter(s => s === 'spin')).toEqual([]);
+});
